@@ -42,6 +42,9 @@ let dbInitialized = false;
 function getDatabaseUrl() {
   if (process.env.DATABASE_URL) return process.env.DATABASE_URL.trim();
   if (process.env.POSTGRES_URL) return process.env.POSTGRES_URL.trim();
+  if (process.env.POSTGRES_PRISMA_URL) return process.env.POSTGRES_PRISMA_URL.trim();
+  if (process.env.POSTGRES_URL_NON_POOLING) return process.env.POSTGRES_URL_NON_POOLING.trim();
+  if (process.env.NEON_DATABASE_URL) return process.env.NEON_DATABASE_URL.trim();
   try {
     const fs = require('fs');
     const path = require('path');
@@ -67,22 +70,29 @@ async function querySQL(text, params = []) {
     throw new Error('DATABASE_URL_MISSING');
   }
 
-  // 1. Try Neon serverless driver (fastest over HTTP, zero connection exhaustion)
+  // Clean connection string (sanitize channel_binding which can affect serverless environments)
+  const cleanDbUrl = dbUrl.replace(/[?&]channel_binding=[^&]+/g, '').replace(/\?&/, '?').replace(/\?$/, '');
+
+  // 1. Try Neon serverless HTTP driver (fastest over HTTP, zero connection exhaustion)
   try {
     const { neon } = require('@neondatabase/serverless');
-    const sql = neon(dbUrl);
-    const res = await sql(text, params);
-    return res;
+    const sql = neon(cleanDbUrl);
+    if (typeof sql.query === 'function') {
+      const res = await sql.query(text, params);
+      return Array.isArray(res) ? res : (res?.rows || []);
+    } else if (typeof sql === 'function') {
+      const res = await sql(text, params);
+      return Array.isArray(res) ? res : (res?.rows || []);
+    }
   } catch (neonErr) {
     // If @neondatabase/serverless is not loaded or direct call differs, fall back to pg
   }
 
   // 2. Standard pg (node-postgres)
   const { Pool } = require('pg');
-  const cleanPgUrl = dbUrl.replace(/[?&]channel_binding=[^&]+/g, '').replace(/\?&/, '?').replace(/\?$/, '');
   const pool = new Pool({
-    connectionString: cleanPgUrl,
-    ssl: cleanPgUrl.includes('localhost') ? false : { rejectUnauthorized: false }
+    connectionString: cleanDbUrl,
+    ssl: cleanDbUrl.includes('localhost') ? false : { rejectUnauthorized: false }
   });
 
   try {
