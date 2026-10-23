@@ -40,7 +40,22 @@ let memoryStore = {
 let dbInitialized = false;
 
 function getDatabaseUrl() {
-  return process.env.DATABASE_URL || process.env.POSTGRES_URL || '';
+  if (process.env.DATABASE_URL) return process.env.DATABASE_URL.trim();
+  if (process.env.POSTGRES_URL) return process.env.POSTGRES_URL.trim();
+  try {
+    const fs = require('fs');
+    const path = require('path');
+    const envPath = path.join(process.cwd(), '.env');
+    if (fs.existsSync(envPath)) {
+      const content = fs.readFileSync(envPath, 'utf8');
+      const match = content.match(/^DATABASE_URL=(.+)$/m);
+      if (match) {
+        process.env.DATABASE_URL = match[1].trim();
+        return process.env.DATABASE_URL;
+      }
+    }
+  } catch(e){}
+  return '';
 }
 
 /**
@@ -64,9 +79,10 @@ async function querySQL(text, params = []) {
 
   // 2. Standard pg (node-postgres)
   const { Pool } = require('pg');
+  const cleanPgUrl = dbUrl.replace(/[?&]channel_binding=[^&]+/g, '').replace(/\?&/, '?').replace(/\?$/, '');
   const pool = new Pool({
-    connectionString: dbUrl,
-    ssl: dbUrl.includes('localhost') ? false : { rejectUnauthorized: false }
+    connectionString: cleanPgUrl,
+    ssl: cleanPgUrl.includes('localhost') ? false : { rejectUnauthorized: false }
   });
 
   try {
