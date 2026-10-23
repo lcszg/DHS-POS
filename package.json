@@ -4,8 +4,8 @@
   "description": "Multi-user restaurant management and POS system with serverless PostgreSQL cloud database",
   "scripts": {
     "build": "echo 'Static build ready'",
-    "start": "node server.js",
-    "dev": "node server.js"
+    "dev": "node server.js",
+    "local": "node server.js"
   },
   "dependencies": {
     "@neondatabase/serverless": "^0.9.5",
