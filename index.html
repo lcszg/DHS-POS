@@ -1,0 +1,515 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#211F1C">
+<title>Savor &amp; Co. — Restaurant Operations</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap" rel="stylesheet">
+<script>tailwind.config = { darkMode:'class', theme:{ extend:{ colors:{ bg:'var(--bg)',surface:'var(--surface)',ink:'var(--text)',muted:'var(--text-muted)' }, fontFamily:{ sans:['DM Sans','system-ui','sans-serif'], serif:['Fraunces','Georgia','serif'] } } } };</script>
+<script src="https://cdn.tailwindcss.com/3.4.17"></script>
+<script src="https://cdn.jsdelivr.net/npm/lucide@0.577.0/dist/umd/lucide.min.js"></script>
+<script src="shared.js"></script>
+</head>
+<body>
+<div id="app"></div>
+<div id="drawer" class="drawer" role="dialog"></div>
+<div id="modal-backdrop" class="backdrop" role="dialog"><div id="modal-content" class="modal"></div></div>
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+<script>
+(function(){
+  const S = window.Savor;
+  document.documentElement.classList.toggle('dark', S.state.dark);
+
+  const ROLES = {
+    waiter: {
+      key: 'waiter',
+      label: 'Waiter',
+      subtitle: 'Take orders, send to kitchen, serve dishes',
+      page: 'waiter.html',
+      icon: 'concierge-bell',
+      color: 'var(--warn)',
+      bg: 'var(--warn-soft)',
+      demoUser: 'waiter',
+      demoPass: 'waiter'
+    },
+    kitchen: {
+      key: 'kitchen',
+      label: 'Kitchen Pass',
+      subtitle: 'Accept orders, mark food ready',
+      page: 'kitchen.html',
+      icon: 'chef-hat',
+      color: 'var(--success)',
+      bg: 'var(--success-soft)',
+      demoUser: 'kitchen',
+      demoPass: 'kitchen'
+    },
+    cashier: {
+      key: 'cashier',
+      label: 'Cashier',
+      subtitle: 'Collect payment, track revenue',
+      page: 'cashier.html',
+      icon: 'receipt',
+      color: 'var(--info)',
+      bg: 'var(--info-soft)',
+      demoUser: 'cashier',
+      demoPass: 'cashier'
+    },
+    semi_admin: {
+      key: 'semi_admin',
+      label: 'Semi Admin',
+      subtitle: 'Menu manager & live orders view',
+      page: 'semi-admin.html',
+      icon: 'sliders-horizontal',
+      color: '#8B5CF6',
+      bg: 'rgba(167,139,250,.18)',
+      demoUser: 'manager',
+      demoPass: 'manager'
+    },
+    admin: {
+      key: 'admin',
+      label: 'Admin / Owner',
+      subtitle: 'Full dashboard, staff accounts, settings',
+      page: 'admin.html',
+      icon: 'layout-dashboard',
+      color: 'var(--primary)',
+      bg: 'var(--primary-soft)',
+      adminPass: 'ADMIN'
+    }
+  };
+
+  function buildHref(page){
+    const base = window.location.origin + window.location.pathname.replace(/\/[^/]*$/, '/');
+    const apiParam = S.CONFIG.API_URL ? ('?api=' + encodeURIComponent(S.CONFIG.API_URL)) : '';
+    return base + page + apiParam;
+  }
+
+  function render(){
+    const connected = !!(S.CONFIG.API_URL && (S.state.net === 'sheets' || S.state.net === 'sql'));
+    const hasUrl = !!S.CONFIG.API_URL;
+    const session = S.currentUser();
+
+    document.getElementById('app').innerHTML = `
+      <section class="min-h-screen flex items-center justify-center p-4 md:p-6 relative">
+        <div class="fixed top-4 right-4 z-20 flex items-center gap-2">
+          <button class="w-10 h-10 rounded-xl card soft flex items-center justify-center" onclick="Savor.openConnectModal()" title="Database Settings" aria-label="Database Settings"><i data-lucide="database" class="w-5 h-5"></i></button>
+          <button class="w-10 h-10 rounded-xl card soft flex items-center justify-center" onclick="Savor.toggleTheme()" title="Toggle dark mode" aria-label="Toggle dark mode"><i data-lucide="sun-moon" class="w-5 h-5"></i></button>
+        </div>
+
+        <div class="w-full max-w-5xl grid lg:grid-cols-2 gap-6 items-stretch">
+          <div class="rounded-[28px] p-8 md:p-11 text-white flex flex-col justify-between" style="background:linear-gradient(150deg,#211F1C 0%,#3A2620 60%,#6B3421 100%)">
+            <div class="flex items-center gap-3">
+              <div class="w-11 h-11 rounded-2xl flex items-center justify-center text-xl" style="background:var(--primary)">✦</div>
+              <div>
+                <p class="font-bold text-lg leading-tight">Savor &amp; Co.</p>
+                <p class="text-sm" style="color:#B9B0A6">Restaurant Operations</p>
+              </div>
+            </div>
+            <div class="my-10">
+              <p class="uppercase tracking-[.2em] text-xs font-bold" style="color:#E9A98B">Multi-User POS System</p>
+              <h1 class="font-serif text-4xl md:text-5xl font-bold mt-3 leading-[1.1]">Waiter sends it.<br>Kitchen cooks it.<br>Waiter serves.</h1>
+              <p class="mt-5 max-w-md leading-relaxed text-sm md:text-base" style="color:#C6BDB2">Every order flows dish-by-dish in real time across staff devices — powered by a high-speed Cloud SQL database.</p>
+            </div>
+            <div class="flex items-center gap-3 text-sm" style="color:#C6BDB2">
+              <i data-lucide="radio-tower" class="w-5 h-5"></i>
+              <span>Multi-device · Real-time Cloud SQL Database</span>
+            </div>
+          </div>
+
+          <div class="card soft rounded-[28px] p-6 md:p-8 flex flex-col">
+            <div class="flex items-center justify-between gap-2">
+              <div>
+                <p class="text-xs font-bold uppercase tracking-[.16em]" style="color:var(--primary)">Staff Portal</p>
+                <h2 class="font-serif text-2xl md:text-3xl font-bold mt-1">Pick a role</h2>
+              </div>
+              <button onclick="Savor.openConnectModal()" class="pill ${connected ? 'pill-live' : (hasUrl ? 'pill-preparing' : 'pill-completed')} cursor-pointer">
+                ${connected ? 'Live Sync' : (hasUrl ? 'Reconnecting' : 'Local Demo')}
+              </button>
+            </div>
+
+            ${session ? `
+              <div class="mt-4 p-3 rounded-2xl border flex items-center justify-between gap-3" style="background:var(--surface-2);border-color:var(--border)">
+                <div class="flex items-center gap-2.5 min-w-0">
+                  <span class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold flex-none" style="background:var(--primary);color:#fff">
+                    ${S.esc((session.name || session.username || '?').slice(0,2).toUpperCase())}
+                  </span>
+                  <div class="min-w-0">
+                    <div class="text-xs font-bold truncate">Signed in: ${S.esc(session.name || session.username)}</div>
+                    <div class="text-[11px] text-muted truncate">@${S.esc(session.username || 'staff')} · ${S.esc(session.role || 'Staff')}</div>
+                  </div>
+                </div>
+                <button class="btn btn-ghost !py-1 !px-2.5 !text-xs !text-rose-500 hover:!bg-rose-500/10 flex-none" onclick="Portal.signOut()">
+                  Sign out
+                </button>
+              </div>
+            ` : !connected ? `
+              <div class="mt-4 p-3.5 rounded-2xl border flex items-center justify-between gap-3" style="background:var(--primary-soft);border-color:rgba(180,74,38,0.25)">
+                <div class="min-w-0">
+                  <div class="flex items-center gap-1.5 font-bold text-xs" style="color:var(--primary)">
+                    <span class="live-dot local"></span>
+                    <span>Cloud SQL POS Active</span>
+                  </div>
+                  <p class="text-xs text-muted mt-0.5">Multi-user real-time sync across phones, tablets, and terminals.</p>
+                </div>
+                <button class="btn btn-ghost !py-1 !px-2.5 !text-xs flex-none" onclick="Savor.openConnectModal()">
+                  Database
+                </button>
+              </div>
+            ` : `
+              <div class="mt-4 p-3.5 rounded-2xl border flex items-center justify-between gap-3" style="background:var(--success-soft);border-color:rgba(37,112,79,0.25)">
+                <div class="flex items-center gap-2 text-xs font-bold" style="color:var(--success)">
+                  <span class="live-dot"></span>
+                  <span>Cloud SQL Active · Multi-User Sync Ready</span>
+                </div>
+                <button class="btn btn-ghost !py-1 !px-2.5 !text-xs flex-none" onclick="Savor.openConnectModal()">
+                  Database
+                </button>
+              </div>
+            `}
+
+            <div class="grid gap-2.5 mt-5">
+              ${Object.values(ROLES).map(r => `
+                <button type="button" onclick="Portal.openLogin('${r.key}')" class="card soft p-3.5 md:p-4 text-left flex items-center justify-between gap-3 hover:-translate-y-0.5 transition-transform w-full">
+                  <span class="flex items-center gap-3">
+                    <span class="w-10 h-10 rounded-xl flex items-center justify-center flex-none" style="background:${r.bg};color:${r.color}">
+                      <i data-lucide="${r.icon}" class="w-5 h-5"></i>
+                    </span>
+                    <span>
+                      <strong class="block text-sm flex items-center gap-2">
+                        <span>${r.label}</span>
+                        ${r.key === 'admin' ? '<span class="text-[10px] font-mono px-1.5 py-0.5 rounded font-normal bg-neutral-200 dark:bg-neutral-800 text-muted">Password only</span>' : '<span class="text-[10px] font-mono px-1.5 py-0.5 rounded font-normal bg-neutral-200 dark:bg-neutral-800 text-muted">User &amp; Pass</span>'}
+                      </strong>
+                      <small class="text-muted block text-xs">${r.subtitle}</small>
+                    </span>
+                  </span>
+                  <i data-lucide="arrow-right" class="w-4 h-4 text-muted"></i>
+                </button>
+              `).join('')}
+            </div>
+
+            <div class="mt-auto pt-5 border-t text-xs text-muted flex items-center justify-between gap-2" style="border-color:var(--border)">
+              <button onclick="Savor.openConnectModal()" class="flex items-center gap-2 hover:opacity-80 text-left">
+                <span class="live-dot ${connected ? '' : (hasUrl ? 'offline' : 'local')}"></span>
+                <span>${connected ? 'Connected · Multi-User Cloud SQL' : (hasUrl ? 'Offline · tap to reconnect' : 'Local demo mode (ready)')}</span>
+              </button>
+              <button onclick="Savor.openConnectModal()" class="btn btn-ghost !py-1 !px-2.5 !text-xs flex items-center gap-1.5">
+                <i data-lucide="database" class="w-3.5 h-3.5"></i>
+                <span>Database</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+    `;
+    if(window.lucide) lucide.createIcons();
+  }
+
+  function openLogin(roleKey){
+    const r = ROLES[roleKey];
+    if(!r) return;
+
+    if(roleKey === 'admin'){
+      promptAdminLogin();
+    } else {
+      promptStaffLogin(roleKey);
+    }
+  }
+
+  function promptAdminLogin(){
+    S.openModal(`
+      <div class="p-6 md:p-7">
+        <div class="flex justify-between items-start">
+          <div class="flex items-center gap-3">
+            <div class="w-11 h-11 rounded-2xl flex items-center justify-center flex-none" style="background:var(--primary-soft);color:var(--primary)">
+              <i data-lucide="shield-check" class="w-6 h-6"></i>
+            </div>
+            <div>
+              <p class="text-xs font-bold uppercase tracking-[.14em]" style="color:var(--primary)">Owner &amp; Admin</p>
+              <h2 class="font-serif text-2xl font-bold mt-0.5">Admin Password</h2>
+            </div>
+          </div>
+          <button class="btn btn-ghost !p-2" onclick="Savor.closeModal()" aria-label="Close">
+            <i data-lucide="x" class="w-4 h-4"></i>
+          </button>
+        </div>
+
+        <p class="text-sm text-muted mt-3">
+          Enter the master password to access full restaurant management, financials, menu editor, and staff accounts.
+        </p>
+
+        <form class="mt-5 space-y-3.5" onsubmit="event.preventDefault();Portal.submitAdminLogin()">
+          <div>
+            <label for="admin-pass-input" class="block text-xs font-bold uppercase tracking-wider text-muted mb-1.5">Master Password</label>
+            <div class="relative">
+              <input 
+                type="password" 
+                id="admin-pass-input" 
+                class="field !py-3 !text-center !text-lg !font-mono tracking-widest" 
+                placeholder="Enter password (ADMIN)" 
+                autocomplete="current-password" 
+                required 
+                autofocus
+              >
+              <button type="button" class="absolute right-3 top-1/2 -translate-y-1/2 text-muted hover:text-text p-1" onclick="Portal.togglePassVisibility('admin-pass-input')">
+                <i data-lucide="eye" class="w-4 h-4"></i>
+              </button>
+            </div>
+          </div>
+
+          <div id="admin-pass-error" class="hidden text-xs font-semibold p-3 rounded-xl flex items-center gap-2" style="background:var(--danger-soft);color:var(--danger)">
+            <i data-lucide="alert-circle" class="w-4 h-4 flex-none"></i>
+            <span id="admin-pass-error-text"></span>
+          </div>
+
+          <div class="rounded-xl p-3 text-xs flex items-center justify-between" style="background:var(--surface-2);border:1px solid var(--border)">
+            <span class="text-muted">Master password:</span>
+            <code class="font-mono font-bold text-xs px-2 py-0.5 rounded cursor-pointer hover:opacity-80" style="background:var(--primary-soft);color:var(--primary)" onclick="document.getElementById('admin-pass-input').value='ADMIN';document.getElementById('admin-pass-input').focus()">ADMIN</code>
+          </div>
+
+          <div class="flex gap-2.5 pt-2">
+            <button type="button" class="btn btn-ghost flex-1 !py-2.5" onclick="Savor.closeModal()">Cancel</button>
+            <button type="submit" id="admin-submit-btn" class="btn btn-primary flex-1 !py-2.5 flex items-center justify-center gap-2">
+              <span>Enter Admin</span>
+              <i data-lucide="arrow-right" class="w-4 h-4"></i>
+            </button>
+          </div>
+        </form>
+      </div>
+    `);
+    if(window.lucide) lucide.createIcons();
+    setTimeout(() => {
+      const el = document.getElementById('admin-pass-input');
+      if(el) el.focus();
+    }, 100);
+  }
+
+  function submitAdminLogin(){
+    const input = document.getElementById('admin-pass-input');
+    const val = (input?.value || '').trim();
+    const errEl = document.getElementById('admin-pass-error');
+    const errText = document.getElementById('admin-pass-error-text');
+
+    errEl.classList.add('hidden');
+    if(!val){
+      errText.textContent = 'Please enter the admin password.';
+      errEl.classList.remove('hidden');
+      input?.focus();
+      return;
+    }
+
+    if(val.toUpperCase() !== 'ADMIN'){
+      errText.textContent = 'Incorrect password. Master password is ADMIN.';
+      errEl.classList.remove('hidden');
+      input?.focus();
+      input?.select();
+      return;
+    }
+
+    S.setAdminUnlocked(true);
+    S.setSession({ id: 'acc-admin', name: 'Owner', username: 'admin', role: 'Admin' });
+    S.toast('Admin access granted ✓', 1800, 'alert');
+    S.closeModal();
+    setTimeout(() => {
+      window.location.href = buildHref('admin.html');
+    }, 150);
+  }
+
+  function promptStaffLogin(roleKey){
+    const r = ROLES[roleKey];
+    if(!r) return;
+
+    S.openModal(`
+      <div class="p-6 md:p-7">
+        <div class="flex justify-between items-start">
+          <div class="flex items-center gap-3">
+            <div class="w-11 h-11 rounded-2xl flex items-center justify-center flex-none" style="background:${r.bg};color:${r.color}">
+              <i data-lucide="${r.icon}" class="w-6 h-6"></i>
+            </div>
+            <div>
+              <p class="text-xs font-bold uppercase tracking-[.14em]" style="color:var(--primary)">Staff Portal</p>
+              <h2 class="font-serif text-2xl font-bold mt-0.5">${r.label} Sign In</h2>
+            </div>
+          </div>
+          <button class="btn btn-ghost !p-2" onclick="Savor.closeModal()" aria-label="Close">
+            <i data-lucide="x" class="w-4 h-4"></i>
+          </button>
+        </div>
+
+        <p class="text-sm text-muted mt-3">
+          Sign in with your staff account credentials created by Admin in Staff Management.
+        </p>
+
+        <form class="mt-5 space-y-3.5" onsubmit="event.preventDefault();Portal.submitStaffLogin('${roleKey}')">
+          <div>
+            <label for="staff-user-input" class="block text-xs font-bold uppercase tracking-wider text-muted mb-1">Username</label>
+            <input 
+              type="text" 
+              id="staff-user-input" 
+              class="field" 
+              placeholder="e.g. ${r.demoUser}" 
+              autocomplete="username" 
+              required 
+              autofocus
+            >
+          </div>
+
+          <div>
+            <label for="staff-pass-input" class="block text-xs font-bold uppercase tracking-wider text-muted mb-1">Password</label>
+            <div class="relative">
+              <input 
+                type="password" 
+                id="staff-pass-input" 
+                class="field" 
+                placeholder="Enter password" 
+                autocomplete="current-password" 
+                required
+              >
+              <button type="button" class="absolute right-3 top-1/2 -translate-y-1/2 text-muted hover:text-text p-1" onclick="Portal.togglePassVisibility('staff-pass-input')">
+                <i data-lucide="eye" class="w-4 h-4"></i>
+              </button>
+            </div>
+          </div>
+
+          <div id="staff-login-error" class="hidden text-xs font-semibold p-3 rounded-xl flex items-center gap-2" style="background:var(--danger-soft);color:var(--danger)">
+            <i data-lucide="alert-circle" class="w-4 h-4 flex-none"></i>
+            <span id="staff-login-error-text"></span>
+          </div>
+
+          <div class="rounded-xl p-3 text-xs" style="background:var(--surface-2);border:1px solid var(--border)">
+            <div class="flex items-center justify-between">
+              <span class="text-muted">Starter credential:</span>
+              <button type="button" class="font-bold underline hover:opacity-80" style="color:var(--primary)" onclick="Portal.fillCredentials('${r.demoUser}','${r.demoPass}')">Auto-fill</button>
+            </div>
+            <p class="font-mono text-xs mt-1">Username: <strong>${r.demoUser}</strong> · Password: <strong>${r.demoPass}</strong></p>
+            <p class="text-[11px] text-muted mt-1">New accounts can be created anytime in Admin &gt; Staff.</p>
+          </div>
+
+          <div class="flex gap-2.5 pt-2">
+            <button type="button" class="btn btn-ghost flex-1 !py-2.5" onclick="Savor.closeModal()">Cancel</button>
+            <button type="submit" id="staff-submit-btn" class="btn btn-primary flex-1 !py-2.5 flex items-center justify-center gap-2">
+              <span>Sign In as ${r.label}</span>
+              <i data-lucide="arrow-right" class="w-4 h-4"></i>
+            </button>
+          </div>
+        </form>
+      </div>
+    `);
+    if(window.lucide) lucide.createIcons();
+    setTimeout(() => {
+      const el = document.getElementById('staff-user-input');
+      if(el) el.focus();
+    }, 100);
+  }
+
+  async function submitStaffLogin(roleKey){
+    const userEl = document.getElementById('staff-user-input');
+    const passEl = document.getElementById('staff-pass-input');
+    const errEl = document.getElementById('staff-login-error');
+    const errText = document.getElementById('staff-login-error-text');
+    const submitBtn = document.getElementById('staff-submit-btn');
+
+    const username = (userEl?.value || '').trim();
+    const password = (passEl?.value || '').trim();
+
+    errEl.classList.add('hidden');
+    if(!username){
+      errText.textContent = 'Please enter your username.';
+      errEl.classList.remove('hidden');
+      userEl?.focus();
+      return;
+    }
+    if(!password){
+      errText.textContent = 'Please enter your password.';
+      errEl.classList.remove('hidden');
+      passEl?.focus();
+      return;
+    }
+
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<span>Verifying...</span>';
+
+    try {
+      const user = await S.Data.authenticate(username, password);
+
+      // Validate role match
+      const norm = str => String(str || '').toLowerCase().replace(/[\s_-]+/g, '');
+      const userRoleNorm = norm(user.role);
+      const targetRoleNorm = norm(roleKey);
+
+      const isMatch = (userRoleNorm === 'admin') ||
+        (targetRoleNorm === userRoleNorm) ||
+        ((targetRoleNorm === 'semiadmin' || targetRoleNorm === 'manager') && (userRoleNorm === 'semiadmin' || userRoleNorm === 'manager'));
+
+      if(!isMatch){
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = `<span>Sign In as ${ROLES[roleKey]?.label || 'Staff'}</span><i data-lucide="arrow-right" class="w-4 h-4"></i>`;
+        if(window.lucide) lucide.createIcons();
+        errText.textContent = `Account @${user.username} is registered as "${user.role}". Please sign in under ${user.role} or ask an Admin to update your role.`;
+        errEl.classList.remove('hidden');
+        return;
+      }
+
+      // Save session
+      S.setSession(user);
+      S.toast(`Welcome back, ${user.name || user.username}! ✓`, 2000, 'alert');
+      S.closeModal();
+
+      const dest = ROLES[roleKey]?.page || 'index.html';
+      setTimeout(() => {
+        window.location.href = buildHref(dest);
+      }, 150);
+
+    } catch(err){
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = `<span>Sign In as ${ROLES[roleKey]?.label || 'Staff'}</span><i data-lucide="arrow-right" class="w-4 h-4"></i>`;
+      if(window.lucide) lucide.createIcons();
+      errText.textContent = err.message || 'Invalid username or password.';
+      errEl.classList.remove('hidden');
+      passEl?.focus();
+      passEl?.select();
+    }
+  }
+
+  function fillCredentials(u, p){
+    const uEl = document.getElementById('staff-user-input');
+    const pEl = document.getElementById('staff-pass-input');
+    if(uEl) uEl.value = u;
+    if(pEl) pEl.value = p;
+    if(pEl) pEl.focus();
+  }
+
+  function togglePassVisibility(inputId){
+    const el = document.getElementById(inputId);
+    if(!el) return;
+    el.type = el.type === 'password' ? 'text' : 'password';
+  }
+
+  function signOut(){
+    S.logout();
+    render();
+  }
+
+  window.Portal = {
+    openLogin,
+    promptAdminLogin,
+    submitAdminLogin,
+    promptStaffLogin,
+    submitStaffLogin,
+    fillCredentials,
+    togglePassVisibility,
+    signOut
+  };
+
+  S.onRender = render;
+
+  (async function boot(){
+    try { await S.Data.bootstrap(); } catch(e){}
+    render();
+  })();
+})();
+</script>
+</body>
+</html>
