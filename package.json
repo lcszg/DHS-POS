@@ -2,8 +2,8 @@
   "name": "savor-restaurant-pos",
   "version": "2.0.0",
   "description": "Multi-user restaurant management and POS system with serverless PostgreSQL cloud database",
-  "main": "api/pos.js",
   "scripts": {
+    "build": "echo 'Static build ready'",
     "start": "node server.js",
     "dev": "node server.js"
   },
