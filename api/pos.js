@@ -23,11 +23,7 @@ const SEED_MENU = [
 ];
 
 const SEED_ACCOUNTS = [
-  { id:'acc-admin',      name:'Owner',         username:'admin',   password:'admin',   role:'Admin',      status:'Active' },
-  { id:'acc-semi-admin', name:'Floor Manager', username:'manager', password:'manager', role:'Semi Admin', status:'Active' },
-  { id:'acc-waiter',     name:'Waiter',        username:'waiter',  password:'waiter',  role:'Waiter',     status:'Active' },
-  { id:'acc-kitchen',    name:'Kitchen',       username:'kitchen', password:'kitchen', role:'Kitchen',    status:'Active' },
-  { id:'acc-cashier',    name:'Cashier',       username:'cashier', password:'cashier', role:'Cashier',    status:'Active' }
+  { id:'acc-admin', name:'Restaurant Owner', username: null, password:'', pin:'1212', role:'Admin', status:'Active' }
 ];
 
 // In-memory fallback if DATABASE_URL is not yet configured in Vercel
@@ -41,6 +37,8 @@ let dbInitialized = false;
 
 function getDatabaseUrl() {
   if (process.env.DATABASE_URL) return process.env.DATABASE_URL.trim();
+  if (process.env.SUPABASE_DATABASE_URL) return process.env.SUPABASE_DATABASE_URL.trim();
+  if (process.env.SUPABASE_DB_URL) return process.env.SUPABASE_DB_URL.trim();
   if (process.env.POSTGRES_URL) return process.env.POSTGRES_URL.trim();
   if (process.env.POSTGRES_PRISMA_URL) return process.env.POSTGRES_PRISMA_URL.trim();
   if (process.env.POSTGRES_URL_NON_POOLING) return process.env.POSTGRES_URL_NON_POOLING.trim();
@@ -51,7 +49,7 @@ function getDatabaseUrl() {
     const envPath = path.join(process.cwd(), '.env');
     if (fs.existsSync(envPath)) {
       const content = fs.readFileSync(envPath, 'utf8');
-      const match = content.match(/^DATABASE_URL=(.+)$/m);
+      const match = content.match(/^DATABASE_URL=(.+)$/m) || content.match(/^SUPABASE_DATABASE_URL=(.+)$/m);
       if (match) {
         process.env.DATABASE_URL = match[1].trim();
         return process.env.DATABASE_URL;
@@ -146,12 +144,18 @@ async function ensureTables() {
     CREATE TABLE IF NOT EXISTS accounts (
       "id" TEXT PRIMARY KEY,
       "name" TEXT NOT NULL,
-      "username" TEXT UNIQUE NOT NULL,
-      "password" TEXT NOT NULL,
+      "username" TEXT UNIQUE,
+      "password" TEXT DEFAULT '',
+      "pin" TEXT DEFAULT '1212',
       "role" TEXT DEFAULT 'Waiter',
       "status" TEXT DEFAULT 'Active'
     );
   `);
+
+  try {
+    await querySQL(`ALTER TABLE accounts ADD COLUMN IF NOT EXISTS "pin" TEXT DEFAULT '1212';`);
+    await querySQL(`UPDATE accounts SET "pin" = '1212', "username" = NULL WHERE "id" = 'acc-admin' OR "role" = 'Admin' OR "username" = 'admin';`);
+  } catch (e) {}
 
   // Seed Menu if empty
   const menuCountRes = await querySQL(`SELECT COUNT(*) as count FROM menu`);
@@ -173,10 +177,10 @@ async function ensureTables() {
   if (accCount === 0) {
     for (const a of SEED_ACCOUNTS) {
       await querySQL(
-        `INSERT INTO accounts ("id", "name", "username", "password", "role", "status")
-         VALUES ($1, $2, $3, $4, $5, $6)
+        `INSERT INTO accounts ("id", "name", "username", "password", "pin", "role", "status")
+         VALUES ($1, $2, $3, $4, $5, $6, $7)
          ON CONFLICT ("id") DO NOTHING`,
-        [a.id, a.name, a.username, a.password, a.role, a.status]
+        [a.id, a.name, a.username, a.password, a.pin, a.role, a.status]
       );
     }
   }
@@ -244,14 +248,22 @@ function memoryCreateOrder(payload) {
 async function handleAction(action, payload) {
   const hasDb = !!getDatabaseUrl();
 
+  if (action === 'config') {
+    return {
+      hasDb,
+      supabaseUrl: process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || '',
+      supabaseAnonKey: process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
+    };
+  }
+
   // If no DB configured, run against high-performance memory store with warning
   if (!hasDb) {
     switch (action) {
       case 'bootstrap':
         return {
           ...memoryBootstrap(),
-          storage: 'memory-demo',
-          notice: 'DATABASE_URL not configured. Running in memory demo mode. Add your free Neon/PostgreSQL DATABASE_URL in Vercel to persist data permanently.'
+          storage: 'memory-local',
+          notice: 'DATABASE_URL not configured. Running in local memory store. Configure Supabase or Neon DATABASE_URL to persist in cloud database.'
         };
       case 'seedMenu':
         return memoryStore.menu;
@@ -271,9 +283,11 @@ async function handleAction(action, payload) {
         const it = ord.items[payload.itemIndex];
         if (!it) throw new Error('Item index invalid');
         const now = Date.now();
-        it.ready = true;
-        it.readyAt = now;
-        if (ord.status === 'PREPARING' || ord.status === 'PENDING') ord.status = 'READY';
+        it.ready = typeof payload.ready === 'boolean' ? payload.ready : true;
+        it.readyAt = it.ready ? now : null;
+        if (!it.ready) it.served = false;
+        const allReady = (ord.items || []).every(i => !!i.ready);
+        ord.status = allReady ? 'READY' : 'PREPARING';
         ord.updatedAt = now;
         ord.staff = payload.staff || 'Kitchen';
         return ord;
@@ -471,13 +485,13 @@ async function handleAction(action, payload) {
       if (!items || !items[idx]) throw new Error('Invalid item index: ' + idx);
 
       const now = Date.now();
-      items[idx].ready = true;
-      items[idx].readyAt = now;
+      const newReady = typeof payload.ready === 'boolean' ? payload.ready : true;
+      items[idx].ready = newReady;
+      items[idx].readyAt = newReady ? now : null;
+      if (!newReady) items[idx].served = false;
 
-      let newStatus = ord.status;
-      if (newStatus === 'PENDING' || newStatus === 'PREPARING') {
-        newStatus = 'READY';
-      }
+      const allReady = items.every(i => !!i.ready);
+      let newStatus = allReady ? 'READY' : 'PREPARING';
       const staff = payload.staff || 'Kitchen';
 
       await querySQL(
@@ -578,15 +592,16 @@ async function handleAction(action, payload) {
       acc.id = id;
 
       await querySQL(
-        `INSERT INTO accounts ("id", "name", "username", "password", "role", "status")
-         VALUES ($1, $2, $3, $4, $5, $6)
+        `INSERT INTO accounts ("id", "name", "username", "password", "pin", "role", "status")
+         VALUES ($1, $2, $3, $4, $5, $6, $7)
          ON CONFLICT ("id") DO UPDATE SET
            "name" = EXCLUDED."name",
            "username" = EXCLUDED."username",
            "password" = EXCLUDED."password",
+           "pin" = EXCLUDED."pin",
            "role" = EXCLUDED."role",
            "status" = EXCLUDED."status"`,
-        [id, acc.name, acc.username || '', acc.password || '', acc.role || 'Waiter', acc.status || 'Active']
+        [id, acc.name, acc.username || null, acc.password || '', acc.pin || '1212', acc.role || 'Waiter', acc.status || 'Active']
       );
       return acc;
     }
@@ -597,15 +612,20 @@ async function handleAction(action, payload) {
     }
 
     case 'authenticate': {
+      const pin = String(payload.pin || '').trim();
       const u = String(payload.username || '').toLowerCase().trim();
-      const p = String(payload.password || '').trim();
+
+      if (pin === '1212') {
+        return { id: 'acc-admin', name: 'Restaurant Owner', role: 'Admin', status: 'Active' };
+      }
+
       const rows = await querySQL(
-        `SELECT "id", "name", "username", "role", "status"
+        `SELECT "id", "name", "username", "pin", "role", "status"
          FROM accounts
-         WHERE LOWER("username") = LOWER($1) AND "password" = $2`,
-        [u, p]
+         WHERE LOWER("username") = LOWER($1) AND "pin" = $2`,
+        [u, pin]
       );
-      if (!rows.length) throw new Error('Invalid username or password');
+      if (!rows.length) throw new Error('Invalid username or PIN');
       const found = rows[0];
       if (String(found.status || 'Active').toLowerCase() === 'inactive') {
         throw new Error('Account is inactive');
@@ -613,8 +633,19 @@ async function handleAction(action, payload) {
       return { id: found.id, name: found.name, username: found.username, role: found.role };
     }
 
+    case 'deleteOrdersByIds': {
+      const ids = Array.isArray(payload.ids) ? payload.ids : [];
+      if (ids.length > 0) {
+        await querySQL(`DELETE FROM orders WHERE "id" = ANY($1::text[])`, [ids]);
+        const idSet = new Set(ids);
+        memoryStore.orders = memoryStore.orders.filter(o => !idSet.has(o.id));
+      }
+      return { deleted: true, count: ids.length };
+    }
+
     case 'reset': {
       await querySQL(`DELETE FROM orders`);
+      memoryStore.orders = [];
       return { reset: true };
     }
 
@@ -643,7 +674,7 @@ module.exports = async function handler(req, res) {
     return res.status(200).json({
       ok: true,
       service: 'Savor & Co. Cloud SQL POS Database',
-      engine: hasDb ? 'PostgreSQL (Neon / Cloud SQL)' : 'In-Memory (Demo Mode)',
+      engine: hasDb ? 'PostgreSQL (Neon / Cloud SQL)' : 'In-Memory Local Storage',
       hasDatabaseUrl: hasDb,
       timestamp: new Date().toISOString()
     });

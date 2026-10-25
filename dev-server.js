@@ -103,7 +103,7 @@ server.listen(PORT, () => {
   console.log(`  - Admin:       http://localhost:${PORT}/admin.html`);
   console.log(`=======================================================`);
   if (!process.env.DATABASE_URL) {
-    console.log(`ℹ Notice: DATABASE_URL not set. Running in fast demo memory mode.`);
+    console.log(`ℹ Notice: DATABASE_URL not set. Running in fast local memory mode.`);
     console.log(`  To connect real Neon PostgreSQL, run:`);
     console.log(`  set DATABASE_URL=postgresql://... && node server.js`);
   } else {

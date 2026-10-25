@@ -1,515 +1,468 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" class="dark">
+
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="theme-color" content="#211F1C">
-<title>Savor &amp; Co. — Restaurant Operations</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap" rel="stylesheet">
-<script>tailwind.config = { darkMode:'class', theme:{ extend:{ colors:{ bg:'var(--bg)',surface:'var(--surface)',ink:'var(--text)',muted:'var(--text-muted)' }, fontFamily:{ sans:['DM Sans','system-ui','sans-serif'], serif:['Fraunces','Georgia','serif'] } } } };</script>
-<script src="https://cdn.tailwindcss.com/3.4.17"></script>
-<script src="https://cdn.jsdelivr.net/npm/lucide@0.577.0/dist/umd/lucide.min.js"></script>
-<script src="shared.js"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#0F0E0C">
+  <title>Food &amp; Beverage — Multi-Station Cloud POS</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400..700;1,9..40,400..700&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap"
+    rel="stylesheet">
+  <script>tailwind.config = { darkMode: 'class', theme: { extend: { colors: { bg: 'var(--bg)', surface: 'var(--surface)', 'surface-2': 'var(--surface-2)', 'surface-3': 'var(--surface-3)', border: 'var(--border)', ink: 'var(--ink)', muted: 'var(--text-muted)', primary: 'var(--primary)' } } } };</script>
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <script src="https://cdn.jsdelivr.net/npm/lucide@0.577.0/dist/umd/lucide.min.js"></script>
+  <script src="shared.js"></script>
 </head>
-<body>
-<div id="app"></div>
-<div id="drawer" class="drawer" role="dialog"></div>
-<div id="modal-backdrop" class="backdrop" role="dialog"><div id="modal-content" class="modal"></div></div>
-<div id="toast" class="toast" role="status" aria-live="polite"></div>
 
-<script>
-(function(){
-  const S = window.Savor;
-  document.documentElement.classList.toggle('dark', S.state.dark);
+<body class="min-h-screen flex flex-col justify-between bg-bg text-ink">
+  <div id="app"></div>
 
-  const ROLES = {
-    waiter: {
-      key: 'waiter',
-      label: 'Waiter',
-      subtitle: 'Take orders, send to kitchen, serve dishes',
-      page: 'waiter.html',
-      icon: 'concierge-bell',
-      color: 'var(--warn)',
-      bg: 'var(--warn-soft)',
-      demoUser: 'waiter',
-      demoPass: 'waiter'
-    },
-    kitchen: {
-      key: 'kitchen',
-      label: 'Kitchen Pass',
-      subtitle: 'Accept orders, mark food ready',
-      page: 'kitchen.html',
-      icon: 'chef-hat',
-      color: 'var(--success)',
-      bg: 'var(--success-soft)',
-      demoUser: 'kitchen',
-      demoPass: 'kitchen'
-    },
-    cashier: {
-      key: 'cashier',
-      label: 'Cashier',
-      subtitle: 'Collect payment, track revenue',
-      page: 'cashier.html',
-      icon: 'receipt',
-      color: 'var(--info)',
-      bg: 'var(--info-soft)',
-      demoUser: 'cashier',
-      demoPass: 'cashier'
-    },
-    semi_admin: {
-      key: 'semi_admin',
-      label: 'Semi Admin',
-      subtitle: 'Menu manager & live orders view',
-      page: 'semi-admin.html',
-      icon: 'sliders-horizontal',
-      color: '#8B5CF6',
-      bg: 'rgba(167,139,250,.18)',
-      demoUser: 'manager',
-      demoPass: 'manager'
-    },
-    admin: {
-      key: 'admin',
-      label: 'Admin / Owner',
-      subtitle: 'Full dashboard, staff accounts, settings',
-      page: 'admin.html',
-      icon: 'layout-dashboard',
-      color: 'var(--primary)',
-      bg: 'var(--primary-soft)',
-      adminPass: 'ADMIN'
-    }
-  };
+  <script>
+    (function () {
+      const S = window.Savor;
+      const { $, esc, icon, toast, setHtml } = S;
 
-  function buildHref(page){
-    const base = window.location.origin + window.location.pathname.replace(/\/[^/]*$/, '/');
-    const apiParam = S.CONFIG.API_URL ? ('?api=' + encodeURIComponent(S.CONFIG.API_URL)) : '';
-    return base + page + apiParam;
-  }
+      const ROLES = [
+        {
+          key: 'admin',
+          title: 'Owner &amp; Admin CMS',
+          subtitle: 'Complete menu catalog, staff roles, live order flow, sales analytics, and settings.',
+          icon: 'layout-dashboard',
+          page: 'admin.html',
+          badge: 'Full CMS Hub',
+          badgeColor: 'pill-paid',
+          defaultPin: '1212'
+        },
+        {
+          key: 'semi_admin',
+          title: 'Floor Manager Portal',
+          subtitle: 'Add new dishes with photos, toggle 86 availability, and monitor dining tables.',
+          icon: 'sliders-horizontal',
+          page: 'semi-admin.html',
+          badge: 'Floor Manager',
+          badgeColor: 'pill-pending',
+          defaultPin: '2222'
+        },
+        {
+          key: 'waiter',
+          title: 'Floor Waiter Portal',
+          subtitle: 'Table ordering, instant kitchen ticket dispatch, and live ready-dish alerts.',
+          icon: 'concierge-bell',
+          page: 'waiter.html',
+          badge: 'Floor Mobile',
+          badgeColor: 'pill-unpaid',
+          defaultPin: '3333'
+        },
+        {
+          key: 'kitchen',
+          title: 'Kitchen Display Pass (KDS)',
+          subtitle: 'Real-time incoming tickets, audio order chime, and dish-by-dish checkoffs.',
+          icon: 'chef-hat',
+          page: 'kitchen.html',
+          badge: 'Pass Station',
+          badgeColor: 'pill-paid',
+          defaultPin: '4444'
+        },
+        {
+          key: 'cashier',
+          title: 'Cashier &amp; Billing',
+          subtitle: 'Live billing counter, split bills, Senior/PWD discounts, and receipt printing.',
+          icon: 'receipt',
+          page: 'cashier.html',
+          badge: 'Counter POS',
+          badgeColor: 'pill-info',
+          defaultPin: '5555'
+        }
+      ];
 
-  function render(){
-    const connected = !!(S.CONFIG.API_URL && (S.state.net === 'sheets' || S.state.net === 'sql'));
-    const hasUrl = !!S.CONFIG.API_URL;
-    const session = S.currentUser();
+      let currentUsername = '';
+      let currentPin = '';
+      let activeRoleKey = null;
 
-    document.getElementById('app').innerHTML = `
-      <section class="min-h-screen flex items-center justify-center p-4 md:p-6 relative">
-        <div class="fixed top-4 right-4 z-20 flex items-center gap-2">
-          <button class="w-10 h-10 rounded-xl card soft flex items-center justify-center" onclick="Savor.openConnectModal()" title="Database Settings" aria-label="Database Settings"><i data-lucide="database" class="w-5 h-5"></i></button>
-          <button class="w-10 h-10 rounded-xl card soft flex items-center justify-center" onclick="Savor.toggleTheme()" title="Toggle dark mode" aria-label="Toggle dark mode"><i data-lucide="sun-moon" class="w-5 h-5"></i></button>
-        </div>
+      function render() {
+        const app = document.getElementById('app');
+        if (!app) return;
 
-        <div class="w-full max-w-5xl grid lg:grid-cols-2 gap-6 items-stretch">
-          <div class="rounded-[28px] p-8 md:p-11 text-white flex flex-col justify-between" style="background:linear-gradient(150deg,#211F1C 0%,#3A2620 60%,#6B3421 100%)">
-            <div class="flex items-center gap-3">
-              <div class="w-11 h-11 rounded-2xl flex items-center justify-center text-xl" style="background:var(--primary)">✦</div>
-              <div>
-                <p class="font-bold text-lg leading-tight">Savor &amp; Co.</p>
-                <p class="text-sm" style="color:#B9B0A6">Restaurant Operations</p>
-              </div>
-            </div>
-            <div class="my-10">
-              <p class="uppercase tracking-[.2em] text-xs font-bold" style="color:#E9A98B">Multi-User POS System</p>
-              <h1 class="font-serif text-4xl md:text-5xl font-bold mt-3 leading-[1.1]">Waiter sends it.<br>Kitchen cooks it.<br>Waiter serves.</h1>
-              <p class="mt-5 max-w-md leading-relaxed text-sm md:text-base" style="color:#C6BDB2">Every order flows dish-by-dish in real time across staff devices — powered by a high-speed Cloud SQL database.</p>
-            </div>
-            <div class="flex items-center gap-3 text-sm" style="color:#C6BDB2">
-              <i data-lucide="radio-tower" class="w-5 h-5"></i>
-              <span>Multi-device · Real-time Cloud SQL Database</span>
-            </div>
-          </div>
-
-          <div class="card soft rounded-[28px] p-6 md:p-8 flex flex-col">
-            <div class="flex items-center justify-between gap-2">
-              <div>
-                <p class="text-xs font-bold uppercase tracking-[.16em]" style="color:var(--primary)">Staff Portal</p>
-                <h2 class="font-serif text-2xl md:text-3xl font-bold mt-1">Pick a role</h2>
-              </div>
-              <button onclick="Savor.openConnectModal()" class="pill ${connected ? 'pill-live' : (hasUrl ? 'pill-preparing' : 'pill-completed')} cursor-pointer">
-                ${connected ? 'Live Sync' : (hasUrl ? 'Reconnecting' : 'Local Demo')}
-              </button>
-            </div>
-
-            ${session ? `
-              <div class="mt-4 p-3 rounded-2xl border flex items-center justify-between gap-3" style="background:var(--surface-2);border-color:var(--border)">
-                <div class="flex items-center gap-2.5 min-w-0">
-                  <span class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold flex-none" style="background:var(--primary);color:#fff">
-                    ${S.esc((session.name || session.username || '?').slice(0,2).toUpperCase())}
-                  </span>
-                  <div class="min-w-0">
-                    <div class="text-xs font-bold truncate">Signed in: ${S.esc(session.name || session.username)}</div>
-                    <div class="text-[11px] text-muted truncate">@${S.esc(session.username || 'staff')} · ${S.esc(session.role || 'Staff')}</div>
-                  </div>
-                </div>
-                <button class="btn btn-ghost !py-1 !px-2.5 !text-xs !text-rose-500 hover:!bg-rose-500/10 flex-none" onclick="Portal.signOut()">
-                  Sign out
-                </button>
-              </div>
-            ` : !connected ? `
-              <div class="mt-4 p-3.5 rounded-2xl border flex items-center justify-between gap-3" style="background:var(--primary-soft);border-color:rgba(180,74,38,0.25)">
-                <div class="min-w-0">
-                  <div class="flex items-center gap-1.5 font-bold text-xs" style="color:var(--primary)">
-                    <span class="live-dot local"></span>
-                    <span>Cloud SQL POS Active</span>
-                  </div>
-                  <p class="text-xs text-muted mt-0.5">Multi-user real-time sync across phones, tablets, and terminals.</p>
-                </div>
-                <button class="btn btn-ghost !py-1 !px-2.5 !text-xs flex-none" onclick="Savor.openConnectModal()">
-                  Database
-                </button>
-              </div>
-            ` : `
-              <div class="mt-4 p-3.5 rounded-2xl border flex items-center justify-between gap-3" style="background:var(--success-soft);border-color:rgba(37,112,79,0.25)">
-                <div class="flex items-center gap-2 text-xs font-bold" style="color:var(--success)">
-                  <span class="live-dot"></span>
-                  <span>Cloud SQL Active · Multi-User Sync Ready</span>
-                </div>
-                <button class="btn btn-ghost !py-1 !px-2.5 !text-xs flex-none" onclick="Savor.openConnectModal()">
-                  Database
-                </button>
-              </div>
-            `}
-
-            <div class="grid gap-2.5 mt-5">
-              ${Object.values(ROLES).map(r => `
-                <button type="button" onclick="Portal.openLogin('${r.key}')" class="card soft p-3.5 md:p-4 text-left flex items-center justify-between gap-3 hover:-translate-y-0.5 transition-transform w-full">
-                  <span class="flex items-center gap-3">
-                    <span class="w-10 h-10 rounded-xl flex items-center justify-center flex-none" style="background:${r.bg};color:${r.color}">
-                      <i data-lucide="${r.icon}" class="w-5 h-5"></i>
-                    </span>
-                    <span>
-                      <strong class="block text-sm flex items-center gap-2">
-                        <span>${r.label}</span>
-                        ${r.key === 'admin' ? '<span class="text-[10px] font-mono px-1.5 py-0.5 rounded font-normal bg-neutral-200 dark:bg-neutral-800 text-muted">Password only</span>' : '<span class="text-[10px] font-mono px-1.5 py-0.5 rounded font-normal bg-neutral-200 dark:bg-neutral-800 text-muted">User &amp; Pass</span>'}
-                      </strong>
-                      <small class="text-muted block text-xs">${r.subtitle}</small>
-                    </span>
-                  </span>
-                  <i data-lucide="arrow-right" class="w-4 h-4 text-muted"></i>
-                </button>
-              `).join('')}
-            </div>
-
-            <div class="mt-auto pt-5 border-t text-xs text-muted flex items-center justify-between gap-2" style="border-color:var(--border)">
-              <button onclick="Savor.openConnectModal()" class="flex items-center gap-2 hover:opacity-80 text-left">
-                <span class="live-dot ${connected ? '' : (hasUrl ? 'offline' : 'local')}"></span>
-                <span>${connected ? 'Connected · Multi-User Cloud SQL' : (hasUrl ? 'Offline · tap to reconnect' : 'Local demo mode (ready)')}</span>
-              </button>
-              <button onclick="Savor.openConnectModal()" class="btn btn-ghost !py-1 !px-2.5 !text-xs flex items-center gap-1.5">
-                <i data-lucide="database" class="w-3.5 h-3.5"></i>
-                <span>Database</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      </section>
-    `;
-    if(window.lucide) lucide.createIcons();
-  }
-
-  function openLogin(roleKey){
-    const r = ROLES[roleKey];
-    if(!r) return;
-
-    if(roleKey === 'admin'){
-      promptAdminLogin();
-    } else {
-      promptStaffLogin(roleKey);
-    }
-  }
-
-  function promptAdminLogin(){
-    S.openModal(`
-      <div class="p-6 md:p-7">
-        <div class="flex justify-between items-start">
-          <div class="flex items-center gap-3">
-            <div class="w-11 h-11 rounded-2xl flex items-center justify-center flex-none" style="background:var(--primary-soft);color:var(--primary)">
-              <i data-lucide="shield-check" class="w-6 h-6"></i>
-            </div>
-            <div>
-              <p class="text-xs font-bold uppercase tracking-[.14em]" style="color:var(--primary)">Owner &amp; Admin</p>
-              <h2 class="font-serif text-2xl font-bold mt-0.5">Admin Password</h2>
-            </div>
-          </div>
-          <button class="btn btn-ghost !p-2" onclick="Savor.closeModal()" aria-label="Close">
-            <i data-lucide="x" class="w-4 h-4"></i>
-          </button>
-        </div>
-
-        <p class="text-sm text-muted mt-3">
-          Enter the master password to access full restaurant management, financials, menu editor, and staff accounts.
-        </p>
-
-        <form class="mt-5 space-y-3.5" onsubmit="event.preventDefault();Portal.submitAdminLogin()">
-          <div>
-            <label for="admin-pass-input" class="block text-xs font-bold uppercase tracking-wider text-muted mb-1.5">Master Password</label>
-            <div class="relative">
-              <input 
-                type="password" 
-                id="admin-pass-input" 
-                class="field !py-3 !text-center !text-lg !font-mono tracking-widest" 
-                placeholder="Enter password (ADMIN)" 
-                autocomplete="current-password" 
-                required 
-                autofocus
-              >
-              <button type="button" class="absolute right-3 top-1/2 -translate-y-1/2 text-muted hover:text-text p-1" onclick="Portal.togglePassVisibility('admin-pass-input')">
-                <i data-lucide="eye" class="w-4 h-4"></i>
-              </button>
-            </div>
-          </div>
-
-          <div id="admin-pass-error" class="hidden text-xs font-semibold p-3 rounded-xl flex items-center gap-2" style="background:var(--danger-soft);color:var(--danger)">
-            <i data-lucide="alert-circle" class="w-4 h-4 flex-none"></i>
-            <span id="admin-pass-error-text"></span>
-          </div>
-
-          <div class="rounded-xl p-3 text-xs flex items-center justify-between" style="background:var(--surface-2);border:1px solid var(--border)">
-            <span class="text-muted">Master password:</span>
-            <code class="font-mono font-bold text-xs px-2 py-0.5 rounded cursor-pointer hover:opacity-80" style="background:var(--primary-soft);color:var(--primary)" onclick="document.getElementById('admin-pass-input').value='ADMIN';document.getElementById('admin-pass-input').focus()">ADMIN</code>
-          </div>
-
-          <div class="flex gap-2.5 pt-2">
-            <button type="button" class="btn btn-ghost flex-1 !py-2.5" onclick="Savor.closeModal()">Cancel</button>
-            <button type="submit" id="admin-submit-btn" class="btn btn-primary flex-1 !py-2.5 flex items-center justify-center gap-2">
-              <span>Enter Admin</span>
-              <i data-lucide="arrow-right" class="w-4 h-4"></i>
+        setHtml(app, `
+      <header class="navbar" role="banner">
+        <div class="navbar-inner">
+          <a href="index.html" class="brand" aria-label="Home">
+            <span class="brand-mark">F&amp;B</span>
+            <span class="brand-text">
+              <span class="brand-title">Food &amp; Beverage</span>
+              <span class="brand-sub">Restaurant Operations</span>
+            </span>
+          </a>
+          <div class="nav-actions">
+            <button class="icon-btn" onclick="Savor.toggleDark()" title="Toggle theme" aria-label="Toggle theme">
+              ${icon(S.state.dark ? 'sun' : 'moon', 'w-4 h-4')}
             </button>
           </div>
-        </form>
-      </div>
-    `);
-    if(window.lucide) lucide.createIcons();
-    setTimeout(() => {
-      const el = document.getElementById('admin-pass-input');
-      if(el) el.focus();
-    }, 100);
-  }
+        </div>
+      </header>
 
-  function submitAdminLogin(){
-    const input = document.getElementById('admin-pass-input');
-    const val = (input?.value || '').trim();
-    const errEl = document.getElementById('admin-pass-error');
-    const errText = document.getElementById('admin-pass-error-text');
-
-    errEl.classList.add('hidden');
-    if(!val){
-      errText.textContent = 'Please enter the admin password.';
-      errEl.classList.remove('hidden');
-      input?.focus();
-      return;
-    }
-
-    if(val.toUpperCase() !== 'ADMIN'){
-      errText.textContent = 'Incorrect password. Master password is ADMIN.';
-      errEl.classList.remove('hidden');
-      input?.focus();
-      input?.select();
-      return;
-    }
-
-    S.setAdminUnlocked(true);
-    S.setSession({ id: 'acc-admin', name: 'Owner', username: 'admin', role: 'Admin' });
-    S.toast('Admin access granted ✓', 1800, 'alert');
-    S.closeModal();
-    setTimeout(() => {
-      window.location.href = buildHref('admin.html');
-    }, 150);
-  }
-
-  function promptStaffLogin(roleKey){
-    const r = ROLES[roleKey];
-    if(!r) return;
-
-    S.openModal(`
-      <div class="p-6 md:p-7">
-        <div class="flex justify-between items-start">
-          <div class="flex items-center gap-3">
-            <div class="w-11 h-11 rounded-2xl flex items-center justify-center flex-none" style="background:${r.bg};color:${r.color}">
-              <i data-lucide="${r.icon}" class="w-6 h-6"></i>
-            </div>
-            <div>
-              <p class="text-xs font-bold uppercase tracking-[.14em]" style="color:var(--primary)">Staff Portal</p>
-              <h2 class="font-serif text-2xl font-bold mt-0.5">${r.label} Sign In</h2>
-            </div>
+      <main class="max-w-5xl mx-auto px-4 py-8 sm:py-12 flex-1">
+        <div class="text-center max-w-2xl mx-auto mb-8 sm:mb-12">
+          <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/10 text-amber-500 text-xs font-bold mb-4 border border-amber-500/20">
+            ${icon('lock', 'w-3.5 h-3.5')} Authorized Staff Sign-In
           </div>
-          <button class="btn btn-ghost !p-2" onclick="Savor.closeModal()" aria-label="Close">
-            <i data-lucide="x" class="w-4 h-4"></i>
-          </button>
+          <h2 class="font-serif text-3xl sm:text-5xl font-bold tracking-tight mb-3">
+            Select Your Station
+          </h2>
+          <p class="text-sm sm:text-base text-muted leading-relaxed">
+            Tap your station to sign in. Executive Admin signs in with 4-digit Master PIN only; staff stations require registered username and 4-digit PIN.
+          </p>
         </div>
 
-        <p class="text-sm text-muted mt-3">
-          Sign in with your staff account credentials created by Admin in Staff Management.
-        </p>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
+          ${ROLES.map(role => `
+            <div class="card p-5 sm:p-6 flex flex-col justify-between interactive cursor-pointer group" onclick="window.openLoginModal('${role.key}')">
+              <div>
+                <div class="flex justify-between items-start mb-4">
+                  <div class="w-12 h-12 rounded-2xl bg-surface-2 group-hover:bg-amber-500/15 group-hover:text-amber-500 transition-colors flex items-center justify-center text-ink">
+                    ${icon(role.icon, 'w-6 h-6')}
+                  </div>
+                  <span class="pill ${role.badgeColor}">${role.badge}</span>
+                </div>
+                <h3 class="font-serif font-bold text-xl group-hover:text-amber-500 transition-colors">${role.title}</h3>
+                <p class="text-xs text-muted mt-2 leading-relaxed">${role.subtitle}</p>
+              </div>
 
-        <form class="mt-5 space-y-3.5" onsubmit="event.preventDefault();Portal.submitStaffLogin('${roleKey}')">
-          <div>
-            <label for="staff-user-input" class="block text-xs font-bold uppercase tracking-wider text-muted mb-1">Username</label>
-            <input 
-              type="text" 
-              id="staff-user-input" 
-              class="field" 
-              placeholder="e.g. ${r.demoUser}" 
-              autocomplete="username" 
-              required 
-              autofocus
-            >
-          </div>
-
-          <div>
-            <label for="staff-pass-input" class="block text-xs font-bold uppercase tracking-wider text-muted mb-1">Password</label>
-            <div class="relative">
-              <input 
-                type="password" 
-                id="staff-pass-input" 
-                class="field" 
-                placeholder="Enter password" 
-                autocomplete="current-password" 
-                required
-              >
-              <button type="button" class="absolute right-3 top-1/2 -translate-y-1/2 text-muted hover:text-text p-1" onclick="Portal.togglePassVisibility('staff-pass-input')">
-                <i data-lucide="eye" class="w-4 h-4"></i>
-              </button>
+              <div class="mt-6 pt-4 border-t border-border flex items-center justify-between">
+                <span class="inline-flex items-center gap-1.5 text-xs text-muted font-medium">
+                  ${icon('shield-check', 'w-3.5 h-3.5 text-emerald-500/80')} Secure Sign-in
+                </span>
+                <span class="text-xs font-bold text-amber-500 flex items-center gap-1 group-hover:translate-x-1 transition-transform">
+                  Enter Station &rarr;
+                </span>
+              </div>
             </div>
-          </div>
+          `).join('')}
+        </div>
+      </main>
 
-          <div id="staff-login-error" class="hidden text-xs font-semibold p-3 rounded-xl flex items-center gap-2" style="background:var(--danger-soft);color:var(--danger)">
-            <i data-lucide="alert-circle" class="w-4 h-4 flex-none"></i>
-            <span id="staff-login-error-text"></span>
-          </div>
-
-          <div class="rounded-xl p-3 text-xs" style="background:var(--surface-2);border:1px solid var(--border)">
-            <div class="flex items-center justify-between">
-              <span class="text-muted">Starter credential:</span>
-              <button type="button" class="font-bold underline hover:opacity-80" style="color:var(--primary)" onclick="Portal.fillCredentials('${r.demoUser}','${r.demoPass}')">Auto-fill</button>
-            </div>
-            <p class="font-mono text-xs mt-1">Username: <strong>${r.demoUser}</strong> · Password: <strong>${r.demoPass}</strong></p>
-            <p class="text-[11px] text-muted mt-1">New accounts can be created anytime in Admin &gt; Staff.</p>
-          </div>
-
-          <div class="flex gap-2.5 pt-2">
-            <button type="button" class="btn btn-ghost flex-1 !py-2.5" onclick="Savor.closeModal()">Cancel</button>
-            <button type="submit" id="staff-submit-btn" class="btn btn-primary flex-1 !py-2.5 flex items-center justify-center gap-2">
-              <span>Sign In as ${r.label}</span>
-              <i data-lucide="arrow-right" class="w-4 h-4"></i>
-            </button>
-          </div>
-        </form>
-      </div>
+      <footer class="border-t border-border py-6 text-center text-xs text-muted">
+        ✦ Food &amp; Beverage — High-Performance Cloud &amp; Local Restaurant POS
+      </footer>
     `);
-    if(window.lucide) lucide.createIcons();
-    setTimeout(() => {
-      const el = document.getElementById('staff-user-input');
-      if(el) el.focus();
-    }, 100);
-  }
-
-  async function submitStaffLogin(roleKey){
-    const userEl = document.getElementById('staff-user-input');
-    const passEl = document.getElementById('staff-pass-input');
-    const errEl = document.getElementById('staff-login-error');
-    const errText = document.getElementById('staff-login-error-text');
-    const submitBtn = document.getElementById('staff-submit-btn');
-
-    const username = (userEl?.value || '').trim();
-    const password = (passEl?.value || '').trim();
-
-    errEl.classList.add('hidden');
-    if(!username){
-      errText.textContent = 'Please enter your username.';
-      errEl.classList.remove('hidden');
-      userEl?.focus();
-      return;
-    }
-    if(!password){
-      errText.textContent = 'Please enter your password.';
-      errEl.classList.remove('hidden');
-      passEl?.focus();
-      return;
-    }
-
-    submitBtn.disabled = true;
-    submitBtn.innerHTML = '<span>Verifying...</span>';
-
-    try {
-      const user = await S.Data.authenticate(username, password);
-
-      // Validate role match
-      const norm = str => String(str || '').toLowerCase().replace(/[\s_-]+/g, '');
-      const userRoleNorm = norm(user.role);
-      const targetRoleNorm = norm(roleKey);
-
-      const isMatch = (userRoleNorm === 'admin') ||
-        (targetRoleNorm === userRoleNorm) ||
-        ((targetRoleNorm === 'semiadmin' || targetRoleNorm === 'manager') && (userRoleNorm === 'semiadmin' || userRoleNorm === 'manager'));
-
-      if(!isMatch){
-        submitBtn.disabled = false;
-        submitBtn.innerHTML = `<span>Sign In as ${ROLES[roleKey]?.label || 'Staff'}</span><i data-lucide="arrow-right" class="w-4 h-4"></i>`;
-        if(window.lucide) lucide.createIcons();
-        errText.textContent = `Account @${user.username} is registered as "${user.role}". Please sign in under ${user.role} or ask an Admin to update your role.`;
-        errEl.classList.remove('hidden');
-        return;
       }
 
-      // Save session
-      S.setSession(user);
-      S.toast(`Welcome back, ${user.name || user.username}! ✓`, 2000, 'alert');
-      S.closeModal();
+      window.openLoginModal = (roleKey) => {
+        activeRoleKey = roleKey;
+        currentPin = '';
+        currentUsername = '';
+        const role = ROLES.find(r => r.key === roleKey);
+        if (!role) return;
 
-      const dest = ROLES[roleKey]?.page || 'index.html';
-      setTimeout(() => {
-        window.location.href = buildHref(dest);
-      }, 150);
+        renderLoginModal();
+        if (roleKey !== 'admin') {
+          setTimeout(() => {
+            document.getElementById('login-username')?.focus();
+          }, 50);
+        }
+      };
+      window.openPinModal = window.openLoginModal;
 
-    } catch(err){
-      submitBtn.disabled = false;
-      submitBtn.innerHTML = `<span>Sign In as ${ROLES[roleKey]?.label || 'Staff'}</span><i data-lucide="arrow-right" class="w-4 h-4"></i>`;
-      if(window.lucide) lucide.createIcons();
-      errText.textContent = err.message || 'Invalid username or password.';
-      errEl.classList.remove('hidden');
-      passEl?.focus();
-      passEl?.select();
-    }
-  }
+      window.updateLoginUser = (val) => {
+        currentUsername = S.sanitizeUsername(val);
+      };
 
-  function fillCredentials(u, p){
-    const uEl = document.getElementById('staff-user-input');
-    const pEl = document.getElementById('staff-pass-input');
-    if(uEl) uEl.value = u;
-    if(pEl) pEl.value = p;
-    if(pEl) pEl.focus();
-  }
+      function updatePinDotsDisplay() {
+        const container = document.getElementById('pin-dots-container');
+        if (!container) return;
+        const dotsHtml = [0, 1, 2, 3].map(i => {
+          const filled = i < currentPin.length;
+          return `<span class="pin-dot ${filled ? 'filled' : ''}"></span>`;
+        }).join('');
+        container.innerHTML = dotsHtml;
+      }
 
-  function togglePassVisibility(inputId){
-    const el = document.getElementById(inputId);
-    if(!el) return;
-    el.type = el.type === 'password' ? 'text' : 'password';
-  }
+      function renderLoginModal() {
+        const role = ROLES.find(r => r.key === activeRoleKey);
+        if (!role) return;
+        const isAdminStation = (role.key === 'admin');
 
-  function signOut(){
-    S.logout();
-    render();
-  }
+        const dots = [0, 1, 2, 3].map(i => {
+          const filled = i < currentPin.length;
+          return `<span class="pin-dot ${filled ? 'filled' : ''}"></span>`;
+        }).join('');
 
-  window.Portal = {
-    openLogin,
-    promptAdminLogin,
-    submitAdminLogin,
-    promptStaffLogin,
-    submitStaffLogin,
-    fillCredentials,
-    togglePassVisibility,
-    signOut
-  };
+        S.Modal.open(`
+      <div class="p-5 sm:p-6 max-w-sm mx-auto text-center relative" id="pin-pad-container">
+        <button type="button" class="absolute top-3 right-3 text-muted hover:text-ink transition-colors p-1" onclick="Savor.Modal.close()" title="Close">
+          ${icon('x', 'w-5 h-5')}
+        </button>
 
-  S.onRender = render;
+        <div class="w-12 h-12 rounded-2xl bg-amber-500/15 text-amber-500 mx-auto flex items-center justify-center mb-2">
+          ${icon(role.icon, 'w-6 h-6')}
+        </div>
+        <h3 class="font-serif font-bold text-xl">${role.title}</h3>
+        <p class="text-xs text-muted mt-0.5 mb-3">
+          ${isAdminStation ? 'Enter 4-digit Master PIN (1212) to unlock Admin CMS' : `Enter Station PIN (${role.defaultPin}) or sign in with staff username`}
+        </p>
 
-  (async function boot(){
-    try { await S.Data.bootstrap(); } catch(e){}
-    render();
-  })();
-})();
-</script>
+        ${!isAdminStation ? `
+          <div class="mb-3 text-left">
+            <label class="block text-xs font-bold text-muted uppercase tracking-wider mb-1">Staff Username (Optional)</label>
+            <div class="relative">
+              <span class="absolute left-3.5 top-3 text-xs text-muted font-mono font-bold">@</span>
+              <input type="text" id="login-username" class="input pl-8 py-2 text-sm font-mono tracking-wide" placeholder="Optional (e.g. ${role.key === 'waiter' ? 'waiter' : role.key})" value="${esc(currentUsername)}" autocomplete="off" oninput="window.updateLoginUser(this.value)">
+            </div>
+          </div>
+        ` : ''}
+
+        <div class="mb-3 text-left">
+          <label class="block text-xs font-bold text-muted uppercase tracking-wider mb-1">
+            ${isAdminStation ? '4-Digit Master PIN (Default: 1212)' : `4-Digit PIN (Default: ${role.defaultPin})`}
+          </label>
+          <div id="pin-dots-container" class="flex items-center justify-center gap-3.5 py-2.5 bg-surface-2 rounded-xl border border-border select-none">
+            ${dots}
+          </div>
+        </div>
+
+        <div class="grid grid-cols-3 gap-2 max-w-[280px] sm:max-w-[260px] mx-auto mb-4">
+          ${[1, 2, 3, 4, 5, 6, 7, 8, 9].map(num => `
+            <button type="button" class="h-14 sm:h-12 rounded-xl bg-surface-2 hover:bg-surface-3 active:scale-95 text-xl sm:text-lg font-bold font-mono transition-all border border-border/80 flex items-center justify-center" onclick="window.enterPinDigit('${num}')">
+              ${num}
+            </button>
+          `).join('')}
+          <button type="button" class="h-14 sm:h-12 rounded-xl bg-surface-2 hover:bg-surface-3 active:scale-95 text-xs font-semibold text-muted hover:text-ink transition-all border border-border/80 flex items-center justify-center" onclick="window.clearPin()">
+            Clear
+          </button>
+          <button type="button" class="h-14 sm:h-12 rounded-xl bg-surface-2 hover:bg-surface-3 active:scale-95 text-xl sm:text-lg font-bold font-mono transition-all border border-border/80 flex items-center justify-center" onclick="window.enterPinDigit('0')">
+            0
+          </button>
+          <button type="button" class="h-14 sm:h-12 rounded-xl bg-surface-2 hover:bg-surface-3 active:scale-95 text-muted hover:text-ink transition-all border border-border/80 flex items-center justify-center" onclick="window.backspacePin()" title="Backspace">
+            ${icon('delete', 'w-5 h-5')}
+          </button>
+        </div>
+
+        <button type="button" class="btn btn-primary w-full justify-center py-2.5 text-xs font-bold" onclick="window.submitLogin()">
+          ${icon('log-in', 'w-4 h-4')} ${isAdminStation ? 'Unlock Admin Portal' : 'Sign In to Station'}
+        </button>
+      </div>
+    `);
+      }
+
+      window.enterPinDigit = (digit) => {
+        const userEl = document.getElementById('login-username');
+        if (userEl) currentUsername = S.sanitizeUsername(userEl.value);
+
+        if (currentPin.length < 4) {
+          currentPin += String(digit);
+          updatePinDotsDisplay();
+
+          if (currentPin.length === 4) {
+            setTimeout(verifyAndLogin, 120);
+          }
+        }
+      };
+
+      window.backspacePin = () => {
+        const userEl = document.getElementById('login-username');
+        if (userEl) currentUsername = S.sanitizeUsername(userEl.value);
+
+        if (currentPin.length > 0) {
+          currentPin = currentPin.slice(0, -1);
+          updatePinDotsDisplay();
+        }
+      };
+
+      window.clearPin = () => {
+        const userEl = document.getElementById('login-username');
+        if (userEl) currentUsername = S.sanitizeUsername(userEl.value);
+
+        currentPin = '';
+        updatePinDotsDisplay();
+      };
+
+      window.submitLogin = () => {
+        verifyAndLogin();
+      };
+
+      function verifyAndLogin() {
+        S.loadLocalState();
+
+        const role = ROLES.find(r => r.key === activeRoleKey);
+        if (!role) return;
+
+        if (currentPin.length !== 4) {
+          toast('Please enter your complete 4-digit PIN.', 2500, 'alert');
+          return;
+        }
+
+        const adminAccount = S.state.accounts.find(a => a.role === 'Admin' || a.id === 'acc-admin') || {
+          id: 'acc-admin', name: 'Restaurant Owner', role: 'Admin', pin: '1212', status: 'Active'
+        };
+        const adminPin = String(adminAccount.pin || '1212').trim();
+
+        // Admin Station login
+        if (activeRoleKey === 'admin') {
+          if (currentPin === adminPin || currentPin === '1212') {
+            const cleanAdmin = { ...adminAccount, role: 'Admin', pin: adminPin };
+            delete cleanAdmin.username;
+            delete cleanAdmin.password;
+            S.setSession(cleanAdmin);
+            S.Modal.close();
+            toast('Welcome, Restaurant Owner!', 2000, 'success');
+            setTimeout(() => {
+              window.location.href = role.page;
+            }, 150);
+            return;
+          } else {
+            shakeAndError('Incorrect Admin PIN. Please try again.');
+            return;
+          }
+        }
+
+        // Master PIN override to enter any station as Admin
+        if (currentPin === adminPin || currentPin === '1212') {
+          S.setSession({ id: 'acc-admin', name: 'Restaurant Owner', role: 'Admin', pin: adminPin });
+          S.Modal.close();
+          toast(`Entering ${role.title} as Owner`, 2000, 'success');
+          setTimeout(() => {
+            window.location.href = role.page;
+          }, 150);
+          return;
+        }
+
+        // Default Station PIN login (e.g. 3333 for Waiter, 4444 for Kitchen, 5555 for Cashier, 2222 for Floor Manager)
+        if (currentPin === String(role.defaultPin)) {
+          const defaultAcc = S.state.accounts.find(a => {
+            const aRole = String(a.role || '').toLowerCase().replace(/[\s_-]+/g, '');
+            const rKey = String(role.key).toLowerCase().replace(/[\s_-]+/g, '');
+            return aRole === rKey || (rKey === 'waiter' && aRole === 'waiter') || (rKey === 'semiadmin' && (aRole === 'semiadmin' || aRole === 'floormanager'));
+          }) || {
+            id: 'acc-' + role.key,
+            name: role.title.replace(' Portal', '').replace(' (KDS)', ''),
+            role: role.key === 'semi_admin' ? 'Semi-Admin' : (role.key.charAt(0).toUpperCase() + role.key.slice(1)),
+            pin: role.defaultPin,
+            status: 'Active'
+          };
+
+          S.setSession(defaultAcc);
+          S.Modal.close();
+          toast(`Welcome to ${role.title}!`, 2000, 'success');
+          setTimeout(() => {
+            window.location.href = role.page;
+          }, 150);
+          return;
+        }
+
+        // Individual Staff Account login by username and PIN
+        const domUser = document.getElementById('login-username');
+        const rawUser = (domUser?.value || currentUsername || '').trim();
+        const cleanUser = S.sanitizeUsername(rawUser).toLowerCase();
+
+        const matchedAccount = S.state.accounts.find(a => {
+          if (!a || !a.pin) return false;
+          const pMatch = String(a.pin || '').trim() === currentPin;
+          if (!pMatch) return false;
+          if (cleanUser && a.username) {
+            return S.sanitizeUsername(a.username).toLowerCase() === cleanUser;
+          }
+          const aRole = String(a.role || '').toLowerCase().replace(/[\s_-]+/g, '');
+          const rKey = String(role.key).toLowerCase().replace(/[\s_-]+/g, '');
+          return aRole === rKey || (rKey === 'semiadmin' && (aRole === 'semiadmin' || aRole === 'floormanager'));
+        });
+
+        if (!matchedAccount) {
+          if (cleanUser) {
+            const userExists = S.state.accounts.find(a => a && a.username && S.sanitizeUsername(a.username).toLowerCase() === cleanUser);
+            if (userExists) {
+              shakeAndError(`Incorrect 4-digit PIN for @${cleanUser}.`);
+            } else {
+              shakeAndError(`No active staff account found with username @${cleanUser}. (Default PIN is ${role.defaultPin})`);
+            }
+          } else {
+            shakeAndError(`Incorrect Station PIN. The default PIN for this station is ${role.defaultPin}.`);
+          }
+          return;
+        }
+
+        if (matchedAccount.status === 'Inactive') {
+          shakeAndError(`Staff account @${matchedAccount.username || matchedAccount.name} is currently set to Inactive.`);
+          return;
+        }
+
+        function isRoleAllowed(stationKey, accountRole) {
+          const sKey = String(stationKey || '').toLowerCase().replace(/[\s_-]+/g, '');
+          const aRole = String(accountRole || '').toLowerCase().replace(/[\s_-]+/g, '');
+          if (aRole === 'admin') return true;
+          if (sKey === aRole) return true;
+          if (sKey === 'semiadmin' && (aRole === 'semiadmin' || aRole === 'floormanager' || aRole === 'manager')) return true;
+          if (sKey === 'floormanager' && (aRole === 'semiadmin' || aRole === 'floormanager' || aRole === 'manager')) return true;
+          return false;
+        }
+
+        if (!isRoleAllowed(role.key, matchedAccount.role)) {
+          toast(`Access Denied: @${matchedAccount.username} is assigned to ${matchedAccount.role}, not this station.`, 3500, 'alert');
+          return;
+        }
+
+        S.setSession(matchedAccount);
+        S.Modal.close();
+        toast(`Welcome, ${matchedAccount.name || '@' + matchedAccount.username}!`, 2000, 'success');
+        setTimeout(() => {
+          window.location.href = role.page;
+        }, 150);
+      }
+
+      function shakeAndError(msg) {
+        currentPin = '';
+        const padEl = document.getElementById('pin-pad-container');
+        if (padEl) {
+          padEl.classList.add('animate-shake');
+          setTimeout(() => padEl.classList.remove('animate-shake'), 450);
+        }
+        updatePinDotsDisplay();
+        toast(msg, 3200, 'alert');
+      }
+
+      window.addEventListener('keydown', (e) => {
+        const modalBackdrop = document.getElementById('modal-backdrop');
+        if (!modalBackdrop || !modalBackdrop.classList.contains('show')) return;
+        if (!activeRoleKey) return;
+
+        const userInput = document.getElementById('login-username');
+        if (document.activeElement === userInput) {
+          if (e.key === 'Enter' || e.key === 'Tab') {
+            e.preventDefault();
+            userInput.blur();
+            if (currentPin.length === 4) verifyAndLogin();
+          }
+          return;
+        }
+
+        if (e.key >= '0' && e.key <= '9') {
+          window.enterPinDigit(e.key);
+        } else if (e.key === 'Backspace') {
+          window.backspacePin();
+        } else if (e.key === 'Enter') {
+          window.submitLogin();
+        } else if (e.key === 'Escape') {
+          S.Modal.close();
+        }
+      });
+
+      // Auto-open station modal if redirected (e.g. ?need_login=waiter)
+      try {
+        const params = new URLSearchParams(window.location.search);
+        const need = params.get('need_login') || params.get('unauthorized');
+        if (need) {
+          const match = ROLES.find(r => r.key === need || r.key.replace('_', '') === need.replace('_', ''));
+          if (match) {
+            setTimeout(() => window.openLoginModal(match.key), 120);
+          }
+        }
+      } catch (e) { }
+
+      S.boot({ role: 'guest', defaultScreen: 'portals', render: render });
+    })();
+  </script>
 </body>
+
 </html>

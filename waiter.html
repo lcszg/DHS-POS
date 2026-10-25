@@ -1,403 +1,850 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" class="dark">
+
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="theme-color" content="#211F1C">
-<title>Waiter — Savor &amp; Co.</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap" rel="stylesheet">
-<script>tailwind.config = { darkMode:'class', theme:{ extend:{ colors:{ bg:'var(--bg)',surface:'var(--surface)',ink:'var(--text)',muted:'var(--text-muted)' }, fontFamily:{ sans:['DM Sans','system-ui','sans-serif'], serif:['Fraunces','Georgia','serif'] } } } };</script>
-<script src="https://cdn.tailwindcss.com/3.4.17"></script>
-<script src="https://cdn.jsdelivr.net/npm/lucide@0.577.0/dist/umd/lucide.min.js"></script>
-<script src="shared.js"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#0F0E0C">
+  <title>Food &amp; Beverage — Floor Waiter</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400..700;1,9..40,400..700&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap"
+    rel="stylesheet">
+  <!-- Tailwind must load BEFORE its config is assigned -->
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <script>tailwind.config = { darkMode: 'class', theme: { extend: { colors: { bg: 'var(--bg)', surface: 'var(--surface)', 'surface-2': 'var(--surface-2)', 'surface-3': 'var(--surface-3)', border: 'var(--border)', ink: 'var(--ink)', muted: 'var(--text-muted)', primary: 'var(--primary)' } } } };</script>
+  <script src="https://cdn.jsdelivr.net/npm/lucide@0.577.0/dist/umd/lucide.min.js"></script>
+  <script src="shared.js"></script>
+
+  <style>
+    /* =====================================================================
+       WAITER TERMINAL — mobile-first layout (uses the shared design tokens)
+       ===================================================================== */
+    /* backdrop-filter on .navbar makes it the containing block for the fixed mobile tab bar,
+       which pins the tabs INSIDE the header (covering brand / sound / theme buttons) instead of the screen bottom */
+    .navbar { backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }
+
+    .wt-main { max-width: 80rem; margin: 0 auto; padding: .75rem .875rem 1.25rem; width: 100%; }
+    @media (min-width: 640px) { .wt-main { padding: 1rem 1.5rem 1.5rem; } }
+    .wt-main.has-bar { padding-bottom: 6.5rem; }
+    @media (min-width: 768px) { .wt-main.has-bar { padding-bottom: 6rem; } }
+    @media (min-width: 1024px) { .wt-main.has-bar { padding-bottom: 1.5rem; } }
+
+    .wt-foot { display: none; text-align: center; font-size: .75rem; color: var(--text-muted); padding: 1rem; border-top: 1px solid var(--border); }
+    @media (min-width: 768px) { .wt-foot { display: block; } }
+
+    .wt-mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+
+    /* ---------- status strip ---------- */
+    .wt-strip { display: flex; align-items: center; justify-content: space-between; gap: .5rem; margin-bottom: .5rem; font-size: .78rem; color: var(--text-muted); }
+    .wt-strip b { color: var(--ink); }
+    .wt-alert { display: flex; align-items: center; gap: .6rem; width: 100%; min-height: 2.9rem; padding: .55rem .9rem; border-radius: 14px; text-align: left;
+      background: var(--success-soft); color: var(--success); border: 1px solid color-mix(in srgb, var(--success) 40%, transparent);
+      font-weight: 700; font-size: .9rem; animation: wtPulse 2s ease-in-out infinite; margin-bottom: .5rem; }
+    .wt-alert .grow { flex: 1; min-width: 0; }
+    @keyframes wtPulse { 0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--success) 35%, transparent); } 50% { box-shadow: 0 0 0 6px transparent; } }
+
+    /* ---------- sticky toolbar: search + categories ---------- */
+    .wt-toolbar { position: sticky; top: 3.5rem; z-index: 30; margin: 0 -.875rem .6rem; padding: .5rem .875rem .35rem;
+      background: color-mix(in srgb, var(--bg) 93%, transparent); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); }
+    @media (min-width: 640px) { .wt-toolbar { margin: 0 -1.5rem .75rem; padding: .6rem 1.5rem .4rem; } }
+    .wt-search { position: relative; }
+    .wt-search input { width: 100%; height: 2.75rem; padding: 0 2.6rem 0 2.5rem; border-radius: 14px; border: 1px solid var(--border);
+      background: var(--surface); color: var(--ink); font-size: 16px; outline: none; }
+    .wt-search input::placeholder { color: var(--text-muted); }
+    .wt-search input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-ring); }
+    .wt-search .si { position: absolute; left: .85rem; top: 50%; transform: translateY(-50%); color: var(--text-muted); pointer-events: none; display: flex; }
+    .wt-search .sx { position: absolute; right: .25rem; top: 50%; transform: translateY(-50%); width: 2.25rem; height: 2.25rem; display: flex; align-items: center; justify-content: center; color: var(--text-muted); border-radius: 10px; }
+    .wt-search .sx[hidden] { display: none; }
+    .wt-chips { display: flex; gap: .35rem; overflow-x: auto; padding: .55rem 0 .15rem; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+    .wt-chips::-webkit-scrollbar { display: none; }
+    .wt-chip { flex: 1 1 auto; justify-content: center; display: inline-flex; align-items: center; gap: .35rem; height: 2.5rem; padding: 0 .6rem; min-width: 0; border-radius: 999px;
+      border: 1px solid var(--border); background: var(--surface); color: var(--ink-soft); font-size: .85rem; font-weight: 600; white-space: nowrap;
+      -webkit-tap-highlight-color: transparent; }
+    @media (max-width: 520px) { .wt-chip { font-size: .78rem; padding: 0 .4rem; gap: 0; } .wt-chip svg, .wt-chip i { display: none; } }
+    .wt-chip.on { background: var(--primary); border-color: var(--primary); color: var(--primary-text); }
+
+    /* ---------- layout ---------- */
+    .wt-layout { display: block; }
+    @media (min-width: 1024px) {
+      .wt-layout { display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: 1.5rem; align-items: start; }
+      .wt-side { align-self: stretch; }
+    }
+
+    /* ---------- dish list ---------- */
+    .wt-grid { display: grid; grid-template-columns: 1fr; gap: .6rem; }
+    @media (min-width: 640px) { .wt-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .75rem; } }
+    @media (min-width: 1700px) { .wt-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+    .wt-dish { display: flex; align-items: center; gap: .75rem; padding: .6rem; min-width: 0; border-radius: 16px; background: var(--surface);
+      border: 1px solid var(--border); cursor: pointer; -webkit-tap-highlight-color: transparent; transition: border-color .15s, background .15s, transform .1s; }
+    .wt-dish:active { transform: scale(.985); }
+    .wt-dish.in { border-color: var(--primary); background: color-mix(in srgb, var(--primary-soft) 55%, var(--surface)); }
+    .wt-dish.off { opacity: .55; cursor: not-allowed; }
+    .wt-thumb { width: 3.75rem; height: 3.75rem; border-radius: 12px; background: var(--surface-2); display: flex; align-items: center; justify-content: center; font-size: 1.9rem; flex: 0 0 auto; overflow: hidden; }
+    .wt-thumb img { width: 100%; height: 100%; object-fit: cover; }
+    .wt-info { flex: 1; min-width: 0; }
+    .wt-name { font-weight: 700; font-size: .95rem; line-height: 1.25; color: var(--ink); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    .wt-desc { font-size: .74rem; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: .1rem; }
+    .wt-price { font-weight: 700; font-size: .92rem; color: var(--primary); margin-top: .2rem; }
+    .wt-act { flex: 0 0 auto; }
+    .wt-add { width: 2.75rem; height: 2.75rem; border-radius: 14px; background: var(--primary); color: var(--primary-text); display: flex; align-items: center; justify-content: center; }
+    .wt-step { display: inline-flex; align-items: center; background: var(--surface-2); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; }
+    .wt-step button { width: 2.6rem; height: 2.6rem; display: flex; align-items: center; justify-content: center; font-size: 1.3rem; font-weight: 700; color: var(--ink); -webkit-tap-highlight-color: transparent; }
+    .wt-step button:active { background: var(--surface-3); }
+    .wt-step b { min-width: 1.6rem; text-align: center; font-size: .95rem; }
+    .wt-step.sm button { width: 2.3rem; height: 2.3rem; }
+    .wt-86 { font-size: .68rem; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; padding: .3rem .55rem; border-radius: 8px; background: var(--alert-soft); color: var(--alert); }
+    .wt-empty { text-align: center; padding: 2.5rem 1rem; color: var(--text-muted); border: 1px dashed var(--border-strong); border-radius: 18px; grid-column: 1 / -1; }
+    .wt-empty h4 { color: var(--ink); font-weight: 700; margin: .5rem 0 .15rem; }
+    .bg-alert-soft { background: var(--alert-soft); }
+
+    /* ---------- floating cart bar (phones/tablets) ---------- */
+    .wt-bar { position: fixed; left: .75rem; right: .75rem; bottom: calc(4.6rem + env(safe-area-inset-bottom, 0px)); z-index: 35; display: none; }
+    .wt-bar.show { display: block; }
+    @media (min-width: 768px) { .wt-bar { bottom: calc(1rem + env(safe-area-inset-bottom, 0px)); max-width: 34rem; margin: 0 auto; } }
+    @media (min-width: 1024px) { .wt-bar, .wt-bar.show { display: none; } }
+    .wt-bar button { width: 100%; min-height: 3.4rem; display: flex; align-items: center; justify-content: space-between; gap: .75rem; padding: .5rem .85rem .5rem .6rem;
+      border-radius: 18px; background: var(--primary); color: var(--primary-text); font-weight: 700;
+      box-shadow: 0 10px 28px color-mix(in srgb, var(--primary) 45%, transparent); -webkit-tap-highlight-color: transparent; }
+    .wt-bar .l { display: flex; align-items: center; gap: .65rem; min-width: 0; text-align: left; }
+    .wt-bar .cnt { width: 2.2rem; height: 2.2rem; border-radius: 12px; background: var(--primary-text); color: var(--primary); display: flex; align-items: center; justify-content: center; font-size: .95rem; flex: 0 0 auto; }
+    .wt-bar .t1 { font-size: .95rem; line-height: 1.1; }
+    .wt-bar .t2 { font-size: .72rem; font-weight: 600; opacity: .85; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .wt-bar .r { display: flex; align-items: center; gap: .35rem; font-size: 1rem; flex: 0 0 auto; }
+
+    /* ---------- ticket: bottom sheet on phones, sticky panel on desktop ---------- */
+    .wt-backdrop { position: fixed; inset: 0; z-index: 54; background: rgba(20, 17, 12, .55); opacity: 0; pointer-events: none; transition: opacity .25s; }
+    .wt-backdrop.show { opacity: 1; pointer-events: auto; }
+    .wt-panel { position: fixed; left: 0; right: 0; bottom: 0; z-index: 55; max-height: 92vh; max-height: 92dvh; display: flex; flex-direction: column;
+      background: var(--surface); border: 1px solid var(--border); border-bottom: 0; border-radius: 22px 22px 0 0; box-shadow: var(--shadow-lg);
+      transform: translateY(105%); visibility: hidden; transition: transform .28s cubic-bezier(.4, 0, .2, 1), visibility 0s .28s; }
+    .wt-panel.open { transform: none; visibility: visible; transition: transform .28s cubic-bezier(.4, 0, .2, 1), visibility 0s; }
+    @media (min-width: 768px) and (max-width: 1023px) { .wt-panel { left: 50%; right: auto; width: 36rem; max-width: 100%; margin-left: -18rem; } }
+    @media (max-width: 767px) { .wt-panel { margin-left: 0; } }
+    @media (min-width: 1024px) {
+      .wt-backdrop { display: none; }
+      .wt-panel { position: sticky; top: 4.5rem; left: auto; right: auto; width: auto; margin: 0; z-index: auto; max-height: calc(100vh - 5.5rem); max-height: calc(100dvh - 5.5rem);
+        transform: none; visibility: visible; border-bottom: 1px solid var(--border); border-radius: 20px; box-shadow: var(--shadow-md); }
+      .wt-grab, .wt-close { display: none !important; }
+    }
+    .wt-inner { display: flex; flex-direction: column; min-height: 0; flex: 1; }
+    .wt-ph { padding: .45rem 1rem .75rem; border-bottom: 1px solid var(--border); flex: 0 0 auto; }
+    @media (min-width: 1024px) { .wt-ph { padding-top: 1rem; } }
+    .wt-grab { width: 2.5rem; height: .28rem; border-radius: 999px; background: var(--border-strong); margin: .15rem auto .65rem; }
+    .wt-ph-row { display: flex; align-items: center; gap: .6rem; }
+    .wt-ph h3 { font-family: 'Fraunces', Georgia, serif; font-weight: 700; font-size: 1.15rem; flex: 1; }
+    .wt-count { font-size: .75rem; font-weight: 700; padding: .25rem .6rem; border-radius: 999px; background: var(--info-soft); color: var(--info); }
+    .wt-iconbtn { width: 2.5rem; height: 2.5rem; border-radius: 12px; display: flex; align-items: center; justify-content: center; color: var(--text-muted); -webkit-tap-highlight-color: transparent; }
+    .wt-iconbtn:active { background: var(--surface-2); }
+    .wt-iconbtn.danger:active { color: var(--alert); }
+    .wt-pb { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; padding: .9rem 1rem; }
+    .wt-pf { flex: 0 0 auto; padding: .8rem 1rem calc(.8rem + env(safe-area-inset-bottom, 0px)); border-top: 1px solid var(--border); background: var(--surface); }
+    @media (min-width: 1024px) { .wt-pf { padding-bottom: .9rem; border-radius: 0 0 20px 20px; } }
+    .wt-label { font-size: .7rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--text-muted); margin-bottom: .35rem; display: flex; align-items: center; gap: .35rem; }
+    .wt-label em { font-style: normal; text-transform: none; letter-spacing: 0; font-weight: 500; }
+    .wt-field { width: 100%; height: 2.9rem; padding: 0 .85rem; border-radius: 12px; border: 1px solid var(--border); background: var(--surface-2); color: var(--ink); font-size: 16px; outline: none; }
+    .wt-field::placeholder { color: var(--text-muted); opacity: .8; }
+    .wt-field:focus { border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-ring); background: var(--surface); }
+    .wt-tchips { display: flex; gap: .4rem; overflow-x: auto; padding: .55rem 0 .1rem; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+    .wt-tchips::-webkit-scrollbar { display: none; }
+    .wt-tchip { flex: 0 0 auto; height: 2.3rem; padding: 0 .8rem; border-radius: 10px; border: 1px solid var(--border); background: var(--surface-2); font-size: .8rem; font-weight: 600; color: var(--ink-soft); white-space: nowrap; -webkit-tap-highlight-color: transparent; }
+    .wt-tchip.on { background: var(--primary); border-color: var(--primary); color: var(--primary-text); }
+    .wt-sec { margin-bottom: 1rem; }
+    .wt-hint { font-size: .72rem; color: var(--warn); margin-top: .35rem; }
+    .wt-line { padding: .75rem 0; border-top: 1px solid var(--border); }
+    .wt-line:first-child { border-top: 0; padding-top: .25rem; }
+    .wt-line-top { display: flex; justify-content: space-between; gap: .75rem; align-items: baseline; }
+    .wt-line-name { font-weight: 700; font-size: .95rem; line-height: 1.25; min-width: 0; }
+    .wt-line-price { font-weight: 700; color: var(--primary); white-space: nowrap; font-size: .92rem; }
+    .wt-line-ctl { display: flex; align-items: center; gap: .5rem; margin-top: .5rem; }
+    .wt-note { flex: 1; min-width: 0; height: 2.3rem; padding: 0 .7rem; border-radius: 10px; border: 1px solid var(--border); background: var(--surface-2); color: var(--warn); font-size: 16px; outline: none; }
+    .wt-note::placeholder { color: var(--text-muted); opacity: .8; }
+    .wt-note:focus { border-color: var(--primary); background: var(--surface); }
+    .wt-cart-empty { text-align: center; padding: 2rem 1rem; color: var(--text-muted); }
+    .wt-cart-empty .ic { width: 3.25rem; height: 3.25rem; border-radius: 16px; background: var(--surface-2); display: flex; align-items: center; justify-content: center; margin: 0 auto .6rem; }
+    .wt-cart-empty h4 { color: var(--ink); font-weight: 700; font-size: .9rem; }
+    .wt-cart-empty p { font-size: .78rem; margin-top: .2rem; }
+    .wt-total { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: .6rem; }
+    .wt-total span { color: var(--text-muted); font-size: .85rem; }
+    .wt-total b { font-size: 1.3rem; color: var(--ink); }
+    .wt-send { width: 100%; min-height: 3.3rem; border-radius: 16px; background: var(--primary); color: var(--primary-text); font-weight: 800; font-size: 1rem; display: flex; align-items: center; justify-content: center; gap: .55rem; -webkit-tap-highlight-color: transparent; }
+    .wt-send:active { transform: translateY(1px); }
+    .wt-send[disabled] { opacity: .45; pointer-events: none; }
+
+    /* ---------- ready-to-serve ---------- */
+    .wt-rhead { margin: .25rem 0 .9rem; display: flex; align-items: flex-end; justify-content: space-between; gap: .75rem; flex-wrap: wrap; }
+    .wt-rhead h2 { font-family: 'Fraunces', Georgia, serif; font-weight: 700; font-size: 1.6rem; line-height: 1.15; }
+    .wt-rhead p { font-size: .8rem; color: var(--text-muted); margin-top: .15rem; }
+    .wt-rgrid { display: grid; grid-template-columns: 1fr; gap: .8rem; }
+    @media (min-width: 768px) { .wt-rgrid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+    @media (min-width: 1280px) { .wt-rgrid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+    .wt-rcard { background: var(--surface); border: 1px solid var(--border); border-left: 5px solid var(--success); border-radius: 18px; overflow: hidden; display: flex; flex-direction: column; }
+    .wt-rtop { display: flex; justify-content: space-between; align-items: flex-start; gap: .5rem; padding: .9rem 1rem .75rem; }
+    .wt-rtable { font-family: 'Fraunces', Georgia, serif; font-weight: 700; font-size: 1.45rem; line-height: 1.1; word-break: break-word; }
+    .wt-rcode { font-size: .75rem; color: var(--text-muted); margin-top: .25rem; }
+    .wt-wait { flex: 0 0 auto; font-size: .72rem; font-weight: 700; padding: .3rem .6rem; border-radius: 999px; background: var(--success-soft); color: var(--success); white-space: nowrap; }
+    .wt-wait.late { background: var(--alert-soft); color: var(--alert); }
+    .wt-ritem { display: flex; align-items: center; gap: .75rem; padding: .7rem 1rem; border-top: 1px solid var(--border); }
+    .wt-ritem .q { flex: 0 0 auto; min-width: 2.1rem; height: 2.1rem; border-radius: 10px; background: var(--surface-2); display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: .85rem; }
+    .wt-ritem .n { flex: 1; min-width: 0; font-weight: 700; font-size: .95rem; line-height: 1.25; }
+    .wt-ritem .n small { display: block; font-weight: 500; font-size: .75rem; color: var(--warn); font-style: italic; margin-top: .15rem; }
+    .wt-deliver { flex: 0 0 auto; min-height: 2.75rem; padding: 0 .9rem; border-radius: 12px; background: var(--success); color: var(--bg); font-weight: 800; font-size: .85rem; display: inline-flex; align-items: center; gap: .35rem; -webkit-tap-highlight-color: transparent; }
+    .wt-deliver:active { transform: translateY(1px); }
+    .wt-rfoot { margin-top: auto; padding: .7rem 1rem .9rem; border-top: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; gap: .75rem; }
+    .wt-rfoot small { color: var(--text-muted); font-size: .75rem; }
+    .wt-all { min-height: 2.75rem; padding: 0 1rem; border-radius: 12px; border: 1px solid var(--success); color: var(--success); font-weight: 800; font-size: .85rem; display: inline-flex; align-items: center; gap: .4rem; }
+    .wt-all:active { background: var(--success-soft); }
+    .wt-btn { min-height: 2.75rem; padding: 0 1rem; border-radius: 12px; background: var(--primary); color: var(--primary-text); font-weight: 700; font-size: .85rem; display: inline-flex; align-items: center; gap: .4rem; }
+    .wt-done { max-width: 26rem; margin: 2rem auto 0; text-align: center; padding: 2.5rem 1.25rem; border: 1px solid var(--border); border-radius: 20px; background: var(--surface); color: var(--text-muted); }
+    .wt-done .ic { width: 3.5rem; height: 3.5rem; border-radius: 18px; background: var(--success-soft); color: var(--success); display: flex; align-items: center; justify-content: center; margin: 0 auto .75rem; }
+    .wt-done h3 { color: var(--ink); font-weight: 700; font-size: 1.05rem; }
+    .wt-done p { font-size: .8rem; margin: .3rem 0 1rem; line-height: 1.5; }
+  </style>
 </head>
-<body>
-<div id="app"></div>
-<script>
-(function(){
-  const S = window.Savor;
-  const session = S.requireRole('waiter');
-  if(!session) return;
-  S.session = session;
 
-  const { $, esc, icon, peso, toast, setHtml, statusPill, paymentPill, orderTotal, hasMeta, orderMetaText,
-          tableTag, tableLine, itemCount, servedCount, readyCount, unreadyCount, readyUnservedCount, allServed,
-          itemSummary, allNotes, servedProgress, emptyState, artClass, menuHero, fmtTime, CATEGORIES } = S;
+<body class="bg-bg text-ink">
+  <div id="app"></div>
 
-  let cart = [];
-  let cartTable = '';
-  let cartCustomer = '';
-  let search = '';
-  let filter = 'All';
-  let availableOnly = false;
-  let busy = false;
-  let picker = { id:null, qty:1, note:'' };
+  <script>
+    (function () {
+      const S = window.Savor;
+      const session = S.requireRole('waiter');
+      if (!session) return;
+      S.session = session;
 
-  function pendingReady(){ return S.state.orders.filter(o => o.status === 'READY' && readyUnservedCount(o) > 0); }
+      const { esc, icon, peso, toast, setHtml, orderMetaText, itemCount, servedCount, readyUnservedCount, fmtTime } = S;
 
-  S.navBadge = function(key){
-    if(key === 'ready'){ const n = pendingReady().length; if(n > 0) return `<span class="nav-badge">${n}</span>`; }
-    return '';
-  };
-  S.onRender = function(){ render(); };
-  S.onDataChanged = function(ctx){
-    const notes = [];
-    S.state.orders.forEach(o => {
-      if(o.status !== 'READY') return;
-      const before = ctx.beforeReadyUnserved.get(o.id);
-      if(before === undefined) return;
-      const now = readyUnservedCount(o);
-      if(now > before) notes.push({ order: o, count: now - before });
-    });
-    if(notes.length > 0){
-      const first = notes[0];
-      const meta = hasMeta(first.order) ? ` (${orderMetaText(first.order)})` : '';
-      const suffix = notes.length > 1 ? ` · +${notes.length - 1} more` : '';
-      toast(`🔔 ${first.order.code} — ${first.count} item${first.count === 1 ? '' : 's'} ready${meta}${suffix} — tap Ready to serve`, 7000, 'alert');
-      if(S.state.sound) S.chime();
-    }
-  };
+      /* ---------- local UI state ---------- */
+      let currentCategory = 'All';
+      let searchQuery = '';
+      let ticketTable = '';
+      let customerName = '';
+      let cart = [];
+      let sheetOpen = false;
+      let sending = false;
 
-  function filteredMenu(){
-    const q = search.trim().toLowerCase();
-    return S.state.menu.filter(m =>
-      (filter === 'All' || m.category === filter) &&
-      (!availableOnly || m.available) &&
-      (!q || m.name.toLowerCase().includes(q) || (m.description || '').toLowerCase().includes(q) || (m.ingredients || '').toLowerCase().includes(q))
-    );
-  }
-  function categoryChips(){
-    return CATEGORIES.map(c => `<button class="pill ${filter === c ? 'pill-preparing' : 'pill-completed'}" onclick="WT.setFilter('${c}')">${c}</button>`).join('');
-  }
+      const NAV_ITEMS = [
+        { key: 'menu', label: 'Take Order', icon: 'plus-circle' },
+        { key: 'ready', label: 'Ready at Pass', icon: 'bell' }
+      ];
 
-  function viewMenu(){
-    const cartCount = cart.reduce((a, c) => a + c.qty, 0);
-    const total = cart.reduce((s, c) => s + ((Number(c.price) || 0) * (Number(c.qty) || 0)), 0);
-    const ready = pendingReady();
-    return `
-    ${ready.length ? `<button class="ready-banner w-full text-left" onclick="Savor.navigate('ready')"><span class="pulse-dot"></span><span class="flex-1">${ready.length} order${ready.length === 1 ? '' : 's'} with items ready to serve — tap to open</span>${icon('arrow-right','w-4 h-4')}</button>` : ''}
-    <div class="card soft p-4 md:p-5 flex flex-wrap items-center gap-3 sticky top-16 z-10 mb-5">
-      <div class="flex items-center gap-2">
-        <span class="w-10 h-10 rounded-xl flex items-center justify-center flex-none" style="background:var(--primary-soft);color:var(--primary)">${icon('concierge-bell','w-5 h-5')}</span>
-        <div class="text-sm"><span class="block text-xs text-muted font-semibold">New order</span><span class="font-bold text-base">Tap food to add</span></div>
-      </div>
-      <div class="flex-1"></div>
-      <button class="btn btn-dark" onclick="WT.openCart()">${icon('shopping-bag','w-4 h-4')} Order${cartCount ? ` <span class="ml-1 px-2 py-0.5 rounded-full text-xs" style="background:var(--primary);color:var(--on-primary)">${cartCount} · ${peso(total)}</span>` : ''}</button>
-    </div>
-    <div class="flex flex-wrap gap-2 mb-4">${categoryChips()}</div>
-    <div class="flex gap-3 mb-5">
-      <input class="field flex-1" placeholder="Search menu" value="${esc(search)}" oninput="WT.setSearch(this.value)">
-      <button class="btn ${availableOnly ? 'btn-primary' : 'btn-ghost'}" onclick="WT.toggleAvailable()">${availableOnly ? 'Available ✓' : 'Available only'}</button>
-    </div>
-    <div class="grid grid-cols-2 sm:grid-cols-2 xl:grid-cols-3 gap-3 md:gap-4">
-      ${filteredMenu().map(item => {
-        const disabled = !item.available;
-        return `<article class="card soft overflow-hidden flex flex-col ${disabled ? 'opacity-60' : ''}">
-          <button class="w-full text-left" ${disabled ? 'disabled' : `onclick="WT.openItemPicker('${item.id}')"`}>${menuHero(item, 'h-32', 'text-6xl')}</button>
-          <div class="p-4 flex flex-col flex-1">
-            <div class="flex justify-between items-start gap-2">
-              <div class="min-w-0"><h3 class="font-bold text-sm">${esc(item.name)}</h3><p class="text-[11px] text-muted mt-0.5">${esc(item.category)}</p></div>
-              ${!item.available ? `<span class="pill pill-completed">Sold out</span>` : ''}
+      const CAT_ORDER = ['Appetizer', 'Main Dish', 'Dessert', 'Drinks'];
+      const CAT_ICONS = { Appetizer: 'sparkles', 'Main Dish': 'flame', Dessert: 'cake', Drinks: 'cup-soda' };
+      const FALLBACK_TABLES = ['Table 1', 'Table 2', 'Table 3', 'Table 4', 'Table 5', 'Table 6', 'Bar 1'];
+
+      const SVG = {
+        trash: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>',
+        down: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>'
+      };
+
+      const isDesktop = () => window.matchMedia('(min-width: 1024px)').matches;
+
+      /* ---------- small helpers ---------- */
+      function getCategories() {
+        const seen = [];
+        (S.state.menu || []).forEach(m => { if (m.category && !seen.includes(m.category)) seen.push(m.category); });
+        const rank = c => { const i = CAT_ORDER.indexOf(c); return i === -1 ? 99 : i; };
+        return seen.sort((a, b) => rank(a) - rank(b));
+      }
+
+      function getTableChoices() {
+        const fromState = (S.state.tables || []).map(t => String(t.number || '').trim()).filter(Boolean);
+        return [...(fromState.length ? fromState : FALLBACK_TABLES), 'Takeout'];
+      }
+
+      function getFilteredMenu() {
+        const q = searchQuery.trim().toLowerCase();
+        return (S.state.menu || []).filter(m => {
+          const matchCat = currentCategory === 'All' || m.category === currentCategory;
+          const matchSearch = !q || String(m.name || '').toLowerCase().includes(q)
+            || (m.ingredients || '').toLowerCase().includes(q) || (m.description || '').toLowerCase().includes(q);
+          return matchCat && matchSearch;
+        });
+      }
+
+      const cartCount = () => cart.reduce((s, l) => s + (Number(l.qty) || 1), 0);
+      const cartTotal = () => cart.reduce((s, l) => s + ((Number(l.item.price) || 0) * (Number(l.qty) || 1)), 0);
+
+      function captureFocus() {
+        const a = document.activeElement;
+        if (a && a.dataset && a.dataset.fk) return { fk: a.dataset.fk, s: a.selectionStart, e: a.selectionEnd };
+        return null;
+      }
+      function restoreFocus(f) {
+        if (!f) return;
+        const el = document.querySelector('[data-fk="' + f.fk + '"]');
+        if (!el) return;
+        try { el.focus({ preventScroll: true }); el.setSelectionRange(f.s, f.e); } catch (e) { }
+      }
+
+      function syncTicketInputsFromDOM() {
+        const t = document.getElementById('ticket-table');
+        const c = document.getElementById('ticket-customer');
+        if (t) ticketTable = t.value;
+        if (c) customerName = c.value;
+      }
+
+      /* ==================== FULL RENDER ==================== */
+      function render(preserveScroll = true) {
+        const app = document.getElementById('app');
+        if (!app) return;
+
+        syncTicketInputsFromDOM();
+        const scrollY = window.scrollY;
+        const focus = captureFocus();
+        const chipsEl = document.getElementById('wt-chips');
+        const chipsLeft = chipsEl ? chipsEl.scrollLeft : 0;
+        const pb = document.querySelector('.wt-pb');
+        const pbTop = pb ? pb.scrollTop : 0;
+
+        if (S.currentScreen !== 'menu') sheetOpen = false;
+
+        const readyOrders = S.state.orders.filter(o => readyUnservedCount(o) > 0)
+          .sort((a, b) => readySince(a) - readySince(b));
+        NAV_ITEMS[1].badge = readyOrders.length ? readyOrders.length : '';
+
+        const content = S.currentScreen === 'ready' ? renderReadyScreen(readyOrders) : renderMenuScreen(readyOrders);
+
+        setHtml(app, `
+          ${S.renderNav('Waiter Floor Terminal', S.currentScreen, NAV_ITEMS)}
+          <main class="wt-main ${S.currentScreen === 'menu' && cart.length ? 'has-bar' : ''}">
+            ${content}
+          </main>
+          <footer class="wt-foot">✦ Food &amp; Beverage — Floor Server Station · Signed in as <b>${esc(session.name || 'Waiter')}</b></footer>
+        `);
+
+        const chips2 = document.getElementById('wt-chips');
+        if (chips2) chips2.scrollLeft = chipsLeft;
+        const pb2 = document.querySelector('.wt-pb');
+        if (pb2) pb2.scrollTop = pbTop;
+        document.body.style.overflow = (sheetOpen && !isDesktop()) ? 'hidden' : '';
+
+        if (preserveScroll) window.scrollTo(0, scrollY); else window.scrollTo(0, 0);
+        restoreFocus(focus);
+      }
+
+      /* ==================== 1. MENU + TICKET ==================== */
+      function renderMenuScreen(readyOrders) {
+        const totalShiftOrders = S.state.orders.filter(o => S.isToday(o.createdAt)).length;
+        const cats = getCategories();
+        if (currentCategory !== 'All' && !cats.includes(currentCategory)) currentCategory = 'All';
+
+        return `
+          ${readyOrders.length > 0 ? `
+            <button type="button" class="wt-alert" onclick="Savor.navigate('ready')">
+              ${icon('bell-ring', 'w-5 h-5')}
+              <span class="grow">${readyOrders.length} order${readyOrders.length > 1 ? 's' : ''} ready to deliver</span>
+              <span>View ${icon('arrow-right', 'w-4 h-4')}</span>
+            </button>
+          ` : ''}
+
+          <div class="wt-strip">
+            <span>Server · <b>${esc(session.name || 'Floor Staff')}</b></span>
+            <span>${totalShiftOrders} ticket${totalShiftOrders === 1 ? '' : 's'} today</span>
+          </div>
+
+          <div class="wt-toolbar">
+            <div class="wt-search">
+              <span class="si">${icon('search', 'w-4 h-4')}</span>
+              <input type="search" data-fk="search" enterkeyhint="search" autocomplete="off" placeholder="Search dish or ingredient…" value="${esc(searchQuery)}" oninput="window.setSearch(this.value)">
+              <button type="button" id="wt-clear" class="sx" aria-label="Clear search" onclick="window.clearSearch()" ${searchQuery ? '' : 'hidden'}>${icon('x', 'w-4 h-4')}</button>
             </div>
-            <p class="text-xs text-muted mt-2 flex-1 line-clamp-2">${esc(item.description || '')}</p>
-            <div class="flex items-center justify-between gap-2 mt-3">
-              <strong class="text-base" style="color:var(--primary)">${peso(item.price)}</strong>
-              <button class="btn btn-primary !py-2 !px-3" ${disabled ? 'disabled' : `onclick="WT.openItemPicker('${item.id}')"`}>${icon('plus','w-4 h-4')} Add</button>
+            <div class="wt-chips" id="wt-chips">${chipsHtml(cats)}</div>
+          </div>
+
+          <div class="wt-layout">
+            <section><div class="wt-grid" id="wt-menu">${menuItemsHtml()}</div></section>
+
+            <div class="wt-side">
+              <div class="wt-backdrop ${sheetOpen ? 'show' : ''}" id="wt-backdrop" onclick="window.closeSheet()"></div>
+              <aside class="wt-panel ${sheetOpen ? 'open' : ''}" id="wt-panel" aria-label="Current ticket">
+                <div class="wt-inner" id="wt-inner">${ticketInnerHtml()}</div>
+              </aside>
             </div>
           </div>
-        </article>`;
-      }).join('') || `<div class="col-span-full card soft p-10 text-center text-muted">No items match your search.</div>`}
-    </div>
-    ${cartCount ? `<button class="fab" onclick="WT.openCart()">${icon('shopping-bag','w-5 h-5')}<span>${cartCount} item${cartCount === 1 ? '' : 's'} · ${peso(total)}</span></button>` : ''}`;
-  }
 
-  function viewReady(){
-    const ready = S.state.orders.filter(o => o.status === 'READY');
-    return `
-    <div class="flex flex-wrap justify-between items-end gap-3">
-      <div><h2 class="font-serif text-2xl md:text-3xl font-bold">Ready to serve</h2><p class="text-muted text-sm mt-1">Tap Serve on each ready item as you deliver it. The order closes once everything is served.</p></div>
-      <span class="pill ${ready.length ? 'pill-ready' : 'pill-completed'}">${ready.length} order${ready.length === 1 ? '' : 's'}</span>
-    </div>
-    ${ready.length ? `<div class="grid md:grid-cols-2 xl:grid-cols-3 gap-4 mt-5">${ready.map(readyTicket).join('')}</div>`
-      : `<div class="mt-6">${emptyState('bell','Nothing waiting','When the kitchen marks an item ready, it will pop up here.')}</div>`}`;
-  }
+          <div class="wt-bar ${cart.length > 0 && !sheetOpen ? 'show' : ''}" id="wt-bar">${cartBarInnerHtml()}</div>
+        `;
+      }
 
-  function readyTicket(order){
-    const ru = readyUnservedCount(order);
-    const sc = unreadyCount(order);
-    const done = allServed(order);
-    return `
-    <article class="card soft overflow-hidden border-t-4 flex flex-col" style="border-top-color:var(--success)">
-      <div class="p-5 flex flex-col flex-1">
-        <div class="flex justify-between items-start gap-3">
-          <div class="min-w-0">
-            <p class="font-bold text-xl leading-none">${esc(order.code)}</p>
-            ${hasMeta(order) ? `<div class="mt-2">${tableTag(order)}</div>` : ''}
-            <p class="text-xs font-semibold mt-2 text-muted">Ready at ${fmtTime(order.updatedAt)}</p>
-          </div>
-          ${statusPill('READY')}
-        </div>
-        ${servedProgress(order)}
-        <div class="mt-3 space-y-1.5 flex-1">
-          ${order.items.map((i, idx) => {
-            const cls = i.served ? 'is-served' : (i.ready ? 'is-ready' : 'is-cooking');
-            return `<div class="item-row ${cls}">
-              <span class="item-check">${(i.served || i.ready) ? icon('check','w-3 h-3') : ''}</span>
-              <div class="flex-1 min-w-0">
-                <div class="item-name text-sm font-semibold">${i.qty} × ${esc(i.name)}</div>
-                ${i.note ? `<div class="text-xs text-muted mt-0.5">Note: ${esc(i.note)}</div>` : ''}
-                ${i.served && i.servedAt ? `<div class="text-[10px] mt-0.5" style="color:var(--success)">Served ${fmtTime(i.servedAt)}</div>` : (i.ready && !i.served ? `<div class="text-[10px] mt-0.5" style="color:var(--success)">Ready to deliver</div>` : `<div class="text-[10px] mt-0.5 text-muted">Still cooking...</div>`)}
-              </div>
-              ${!i.served && i.ready ? `<button class="btn btn-success !py-1.5 !px-3 !text-xs" onclick="WT.serveItem('${order.id}', ${idx})">${icon('check','w-3 h-3')} Serve</button>` : ''}
+      function chipsHtml(cats) {
+        cats = cats || getCategories();
+        const all = [{ key: 'All', label: 'All', icon: 'utensils' }]
+          .concat(cats.map(c => ({ key: c, label: c, icon: CAT_ICONS[c] || 'utensils' })));
+        return all.map(c => `
+          <button type="button" class="wt-chip ${currentCategory === c.key ? 'on' : ''}" onclick="window.setCategory('${esc(c.key)}')">
+            ${icon(c.icon, 'w-4 h-4')}<span>${esc(c.label)}</span>
+          </button>
+        `).join('');
+      }
+
+      function menuItemsHtml() {
+        const list = getFilteredMenu();
+        if (!list.length) {
+          return `
+            <div class="wt-empty">
+              ${icon('search-x', 'w-9 h-9 mx-auto')}
+              <h4>No dishes found</h4>
+              <p style="font-size:.78rem">Try another keyword or category.</p>
+              <button type="button" class="wt-btn" style="margin:.8rem auto 0" onclick="window.clearSearch(); window.setCategory('All');">Show full menu</button>
             </div>`;
-          }).join('')}
-        </div>
-        ${done ? `<div class="mt-4 text-center py-3 rounded-xl text-sm font-bold" style="background:var(--success-soft);color:var(--success)">${icon('check','w-4 h-4 inline -mt-0.5 mr-1')} All items served · sent to cashier</div>`
-        : ru > 0 ? `<button class="btn btn-success w-full mt-4" onclick="WT.serveAllReady('${order.id}')">${icon('check-check','w-4 h-4')} Serve all ready items (${ru})</button>${sc > 0 ? `<p class="text-[11px] text-muted text-center mt-2">${sc} item${sc === 1 ? '' : 's'} still cooking — order stays open</p>` : ''}`
-        : sc > 0 ? `<div class="mt-4 text-center py-3 rounded-xl text-sm" style="background:var(--surface-2);color:var(--text-muted)">Waiting on kitchen to finish ${sc} item${sc === 1 ? '' : 's'}</div>` : ''}
-      </div>
-    </article>`;
-  }
+        }
+        const card = (dish) => {
+          const line = cart.find(c => c.item.id === dish.id);
+          const is86 = !dish.available;
+          const id = esc(dish.id);
+          return `
+            <div class="wt-dish ${line ? 'in' : ''} ${is86 ? 'off' : ''}" ${is86 ? 'aria-disabled="true"' : `role="button" tabindex="0" onclick="window.openDish('${id}')"`}>
+              <div class="wt-thumb">
+                ${dish.image ? `<img src="${esc(dish.image)}" alt="" loading="lazy" onerror="this.parentNode.innerHTML='${dish.emoji ? esc(dish.emoji) : `<i data-lucide=&quot;utensils&quot; class=&quot;w-5 h-5 text-muted&quot;></i>`}'">` : (dish.emoji ? dish.emoji : icon('utensils', 'w-5 h-5 text-muted'))}
+              </div>
+              <div class="wt-info">
+                <div class="wt-name">${esc(dish.name)}</div>
+                <div class="wt-desc">${esc(dish.description || dish.ingredients || dish.category || '')}</div>
+                <div class="wt-price wt-mono">${peso(dish.price)}</div>
+              </div>
+              <div class="wt-act">
+                ${is86 ? `<span class="wt-86">86 · Sold out</span>`
+              : line ? `
+                    <div class="wt-step" onclick="event.stopPropagation()">
+                      <button type="button" aria-label="Remove one ${esc(dish.name)}" onclick="window.updateCartQtyByDishId('${id}', -1)">−</button>
+                      <b class="wt-mono">${line.qty}</b>
+                      <button type="button" aria-label="Add one ${esc(dish.name)}" onclick="window.updateCartQtyByDishId('${id}', 1)">+</button>
+                    </div>`
+                : `<span class="wt-add" aria-label="Add ${esc(dish.name)}" style="font-size:1.6rem;font-weight:500;line-height:1">+</span>`}
+              </div>
+            </div>`;
+        };
 
-  function viewOrders(){
-    const list = S.state.orders.slice(0, 40);
-    return `
-    <div class="flex flex-wrap justify-between items-end gap-3">
-      <div><h2 class="font-serif text-2xl md:text-3xl font-bold">My orders</h2><p class="text-muted text-sm mt-1">All the orders you have sent to the kitchen.</p></div>
-      <button class="btn btn-ghost" onclick="Savor.refreshNow()">${icon('refresh-cw','w-4 h-4')} Refresh</button>
-    </div>
-    ${list.length ? `<div class="grid gap-4 mt-5">
-      ${list.map(o => `<article class="card soft p-5 flex flex-wrap justify-between gap-4">
-        <div class="min-w-0 flex-1">
-          <div class="flex items-center gap-3 flex-wrap"><h3 class="font-bold text-lg">${esc(o.code)}</h3>${statusPill(o.status)}${paymentPill(o)}</div>
-          ${tableLine(o)}
-          <p class="mt-2 text-xs text-muted">Sent ${fmtTime(o.createdAt)}</p>
-          <p class="text-sm text-muted mt-2">${esc(itemSummary(o))}</p>
-          <p class="text-sm font-semibold mt-1">${peso(orderTotal(o))}</p>
-          ${o.status === 'READY' ? servedProgress(o) : ''}
-        </div>
-        <div class="flex items-end gap-2">
-          ${o.status === 'READY' && readyUnservedCount(o) > 0 ? `<button class="btn btn-primary" onclick="Savor.navigate('ready')">${icon('bell','w-4 h-4')} Open Ready to serve</button>` : ''}
-        </div>
-      </article>`).join('')}
-    </div>` : `<div class="mt-6">${emptyState('clipboard-list','No orders yet','Once you send an order it will appear here.')}<div class="text-center mt-6"><button class="btn btn-primary" onclick="Savor.navigate('menu')">${icon('utensils-crossed','w-4 h-4')} Take an order</button></div></div>`}`;
-  }
+        return list.map(card).join('');
+      }
 
-  function viewHelp(){
-    return `
-    <div class="max-w-2xl mx-auto">
-      <div class="text-center">
-        <div class="w-16 h-16 rounded-2xl mx-auto flex items-center justify-center" style="background:var(--primary);color:var(--on-primary)">${icon('concierge-bell','w-7 h-7')}</div>
-        <h2 class="font-serif text-2xl md:text-3xl font-bold mt-5">How taking an order works</h2>
-        <p class="text-muted text-sm mt-2">Each dish flows individually — kitchen marks ready, you serve</p>
-      </div>
-      <section class="card soft p-6 mt-6">
-        <ol class="space-y-4 text-sm">
-          ${[
-            ['Set the table','Open the cart and enter Table # (required) and Customer name (optional).'],
-            ['Tap a dish','Tap a food card to set quantity and add a note for the chef.'],
-            ['Send to kitchen','Press Send to kitchen. Kitchen must accept before cooking starts.'],
-            ['Kitchen cooks','Kitchen marks each dish ready as it finishes. First ready dish signals you.'],
-            ['Serve ready items','Tap Serve on each ready item. The order stays open until every item is served.'],
-            ['Order closes','Once everything is served, the order auto-moves to the cashier as Unpaid.']
-          ].map(([t,d], i) => `<li class="flex gap-3"><span class="w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold flex-none" style="background:var(--primary-soft);color:var(--primary)">${i+1}</span><div><strong class="block">${t}</strong><span class="text-muted">${d}</span></div></li>`).join('')}
-        </ol>
-      </section>
-    </div>`;
-  }
+      /* ---------- dish detail popup ---------- */
+      let detailQty = 1;
+      let detailDishId = null;
 
-  function render(){
-    const map = { menu: viewMenu, ready: viewReady, orders: viewOrders, help: viewHelp };
-    const fn = map[S.screen] || viewMenu;
-    const titles = { menu:'Take order', ready:'Ready to serve', orders:'My orders', help:'Help' };
-    document.getElementById('screen-eyebrow').textContent = 'FLOOR SERVICE';
-    document.getElementById('screen-title').textContent = titles[S.screen] || 'Take order';
-    setHtml(document.getElementById('main'), fn());
-    document.getElementById('main').firstElementChild?.classList.add('screen-enter');
-    S._renderNav();
-    S.setNet(S.state.net);
-    const ready = pendingReady().length;
-    document.title = ready > 0 ? `(${ready}) Waiter — Savor` : 'Waiter — Savor & Co.';
-  }
+      function detailTotalText() {
+        const dish = S.state.menu.find(m => m.id === detailDishId);
+        return dish ? peso((Number(dish.price) || 0) * detailQty) : '';
+      }
 
-  function setSearch(v){ search = v; render(); }
-  function setFilter(c){ filter = c; render(); }
-  function toggleAvailable(){ availableOnly = !availableOnly; render(); }
+      window.openDish = (dishId) => {
+        const dish = S.state.menu.find(m => m.id === dishId);
+        if (!dish) return;
+        syncTicketInputsFromDOM();
+        detailDishId = dishId;
+        detailQty = 1;
+        const inCart = cart.find(c => c.item.id === dishId);
+        const ingredients = String(dish.ingredients || '').split(',').map(s => s.trim()).filter(Boolean);
 
-  function openItemPicker(id){
-    const item = S.state.menu.find(m => m.id === id); if(!item) return;
-    picker = { id, qty:1, note:'' };
-    const heroHtml = item.image
-      ? `<div class="min-h-44 md:min-h-full relative overflow-hidden"><img src="${esc(item.image)}" class="absolute inset-0 w-full h-full object-cover" alt=""></div>`
-      : `<div class="art ${artClass(item.category)} min-h-44 md:min-h-full flex items-center justify-center text-7xl">${item.emoji || '🍽️'}</div>`;
-    S.openModal(`
-    <div class="grid md:grid-cols-2">
-      ${heroHtml}
-      <div class="p-6">
-        <div class="flex justify-between items-start">
-          <span class="pill pill-preparing">${esc(item.category)}</span>
-          <button class="btn btn-ghost !p-2" onclick="Savor.closeModal()" aria-label="Close">${icon('x','w-4 h-4')}</button>
-        </div>
-        <h2 class="font-serif font-bold text-2xl mt-3">${esc(item.name)}</h2>
-        <p class="text-sm text-muted mt-2">${esc(item.description || '')}</p>
-        ${item.ingredients ? `<p class="text-xs text-muted mt-2"><strong style="color:var(--text)">Ingredients:</strong> ${esc(item.ingredients)}</p>` : ''}
-        <p class="font-bold text-xl mt-3" style="color:var(--primary)">${peso(item.price)}</p>
-        <div class="flex items-center gap-4 mt-6">
-          <span class="font-bold text-sm">Quantity</span>
-          <button class="w-10 h-10 rounded-full border font-bold text-lg" style="border-color:var(--border)" onclick="WT.pickerQty(-1)">−</button>
-          <strong id="picker-qty" class="text-lg w-6 text-center">1</strong>
-          <button class="w-10 h-10 rounded-full border font-bold text-lg" style="border-color:var(--border)" onclick="WT.pickerQty(1)">+</button>
-        </div>
-        <label class="block mt-5 text-sm font-bold">Note for the chef
-          <textarea id="picker-note" maxlength="120" class="field mt-2" placeholder="e.g. no onions, serve last"></textarea>
-        </label>
-        <div class="flex justify-between items-center mt-4 p-3 rounded-xl" style="background:var(--surface-2)">
-          <span class="text-sm text-muted">Subtotal</span><strong id="picker-total" class="text-lg">${peso(item.price)}</strong>
-        </div>
-        <button class="btn btn-primary w-full mt-4" onclick="WT.pickerAdd()">Add to order</button>
-      </div>
-    </div>`);
-  }
-  function pickerQty(n){
-    picker.qty = Math.max(1, Math.min(50, picker.qty + n));
-    const el = document.getElementById('picker-qty'); if(el) el.textContent = picker.qty;
-    const item = S.state.menu.find(m => m.id === picker.id);
-    if(item){ const t = document.getElementById('picker-total'); if(t) t.textContent = peso((Number(item.price) || 0) * picker.qty); }
-  }
-  function pickerAdd(){
-    const item = S.state.menu.find(m => m.id === picker.id); if(!item) return;
-    const note = (document.getElementById('picker-note')?.value || '').trim();
-    const existing = cart.find(c => c.id === item.id && c.note === note);
-    if(existing) existing.qty += picker.qty;
-    else cart.push({ lineId: S.uid(), id: item.id, name: item.name, qty: picker.qty, note, price: Number(item.price) || 0 });
-    S.closeModal(); S.toast(`Added ${item.name} ✓`); render();
-  }
-
-  function openCart(){
-    const drawer = document.getElementById('drawer');
-    const count = cart.reduce((a, c) => a + c.qty, 0);
-    const total = cart.reduce((s, c) => s + ((Number(c.price) || 0) * (Number(c.qty) || 0)), 0);
-    const metaPreview = [String(cartTable || '').trim() ? 'Table ' + cartTable.trim() : '', String(cartCustomer || '').trim() ? cartCustomer.trim() : ''].filter(Boolean).join(' · ');
-    drawer.innerHTML = `
-    <div class="flex flex-col h-full">
-      <div class="flex justify-between items-start p-5 border-b" style="border-color:var(--border)">
-        <div class="min-w-0">
-          <p class="text-xs font-bold uppercase tracking-[.14em]" style="color:var(--primary)">New order</p>
-          <h2 class="font-serif text-xl font-bold">Current order</h2>
-          ${metaPreview ? `<p class="text-xs mt-1 font-semibold" style="color:var(--warn)">${esc(metaPreview)}</p>` : ''}
-        </div>
-        <button class="btn btn-ghost !p-2" onclick="Savor.closeDrawer()">${icon('x','w-4 h-4')}</button>
-      </div>
-      ${cart.length ? `
-        <div class="px-5 py-3 border-b" style="border-color:var(--border);background:var(--surface-2)">
-          <div class="grid grid-cols-3 gap-2">
-            <label class="block text-xs font-bold uppercase tracking-wide col-span-1" style="color:var(--text-muted)">Table <span style="color:var(--danger)">*</span>
-              <input id="cart-table" class="field mt-1 !py-1.5 !text-sm" placeholder="5" inputmode="numeric" value="${esc(cartTable)}" oninput="WT.setCartTable(this.value)">
-            </label>
-            <label class="block text-xs font-bold uppercase tracking-wide col-span-2" style="color:var(--text-muted)">Customer
-              <input id="cart-customer" class="field mt-1 !py-1.5 !text-sm" placeholder="e.g. Maria Santos" value="${esc(cartCustomer)}" oninput="WT.setCartCustomer(this.value)">
-            </label>
-          </div>
-        </div>` : ''}
-      <div class="flex-1 overflow-auto p-5">
-        ${cart.length ? cart.map(c => `
-          <article class="pb-4 mb-4 border-b last:border-0" style="border-color:var(--border)">
-            <div class="flex justify-between gap-3"><strong class="text-sm">${esc(c.name)}</strong><span class="text-sm font-semibold">${peso((Number(c.price) || 0) * c.qty)}</span></div>
-            ${c.note ? `<p class="text-xs text-muted mt-1">Note: ${esc(c.note)}</p>` : ''}
-            <div class="flex items-center gap-3 mt-3">
-              <button class="w-8 h-8 rounded-full border font-bold" style="border-color:var(--border)" onclick="WT.cartQty('${c.lineId}',-1)">−</button>
-              <strong class="text-sm w-6 text-center">${c.qty}</strong>
-              <button class="w-8 h-8 rounded-full border font-bold" style="border-color:var(--border)" onclick="WT.cartQty('${c.lineId}',1)">+</button>
-              <span class="ml-auto text-xs text-muted">${peso(c.price)} ea</span>
-              <button class="text-xs font-bold" style="color:var(--danger)" onclick="WT.cartRemove('${c.lineId}')">Remove</button>
+        S.Modal.open(`
+          <div class="p-5 sm:p-6 max-w-md mx-auto">
+            <div class="flex justify-between items-start mb-3">
+              <span class="text-xs text-primary font-bold uppercase tracking-wider">${esc(dish.category)}</span>
+              <button type="button" class="btn btn-ghost p-1.5" aria-label="Close" onclick="Savor.Modal.close()">${icon('x', 'w-4 h-4')}</button>
             </div>
-          </article>`).join('') : `<div class="text-center py-16"><div class="w-14 h-14 rounded-2xl mx-auto flex items-center justify-center" style="background:var(--surface-2);color:var(--text-muted)">${icon('shopping-bag','w-6 h-6')}</div><h3 class="font-bold mt-4">No items yet</h3><p class="text-sm text-muted mt-1">Tap a menu item to add it to this order.</p></div>`}
-      </div>
-      ${cart.length ? `
-        <div class="p-5 border-t" style="border-color:var(--border)">
-          <div class="flex justify-between text-sm mb-1"><span class="text-muted">Items</span><span>${count}</span></div>
-          <div class="flex justify-between text-base font-bold mb-4"><span>Total</span><span>${peso(total)}</span></div>
-          <button class="btn btn-primary w-full" onclick="WT.sendOrder()">${icon('send','w-4 h-4')} Send to kitchen</button>
-          <p class="text-[11px] text-muted text-center mt-2">Table number is required.</p>
-        </div>` : ''}
-    </div>`;
-    drawer.classList.add('show');
-    if(window.lucide) lucide.createIcons();
-  }
-  function setCartTable(v){ cartTable = v; }
-  function setCartCustomer(v){ cartCustomer = v; }
-  function cartQty(lineId, n){
-    const line = cart.find(c => c.lineId === lineId); if(!line) return;
-    line.qty += n;
-    if(line.qty < 1) cart = cart.filter(c => c.lineId !== lineId);
-    openCart(); render();
-  }
-  function cartRemove(lineId){ cart = cart.filter(c => c.lineId !== lineId); openCart(); render(); }
+            <div class="w-full h-52 rounded-2xl overflow-hidden bg-surface-2 flex items-center justify-center text-7xl mb-4">
+              ${dish.image ? `<img src="${esc(dish.image)}" alt="${esc(dish.name)}" class="w-full h-full object-cover" onerror="this.parentNode.innerHTML='${dish.emoji ? `<span class=&quot;text-7xl&quot;>${esc(dish.emoji)}</span>` : `<i data-lucide=&quot;utensils&quot; class=&quot;w-14 h-14 text-muted&quot;></i>`}'">` : (dish.emoji ? `<span class="text-7xl">${dish.emoji}</span>` : icon('utensils', 'w-14 h-14 text-muted'))}
+            </div>
+            <div class="flex items-start justify-between gap-3">
+              <h3 class="font-serif font-bold text-2xl leading-tight">${esc(dish.name)}</h3>
+              <strong class="text-xl text-primary wt-mono whitespace-nowrap">${peso(dish.price)}</strong>
+            </div>
+            <p class="text-sm text-muted mt-2 leading-relaxed">${esc(dish.description || 'No description available.')}</p>
+            ${ingredients.length ? `
+              <div class="mt-4">
+                <div class="wt-label">Ingredients</div>
+                <div class="flex flex-wrap gap-1.5">
+                  ${ingredients.map(i => `<span class="pill pill-completed">${esc(i)}</span>`).join('')}
+                </div>
+              </div>` : ''}
+            ${inCart ? `<p class="text-xs mt-4 text-primary font-semibold">Already on ticket × ${inCart.qty}</p>` : ''}
+            <div class="flex items-center gap-3 mt-5">
+              <div class="wt-step">
+                <button type="button" aria-label="Less" onclick="window.detailChangeQty(-1)">−</button>
+                <b class="wt-mono" id="detail-qty">1</b>
+                <button type="button" aria-label="More" onclick="window.detailChangeQty(1)">+</button>
+              </div>
+              <button type="button" class="wt-send" style="flex:1" onclick="window.orderFromDetail()">
+                ${icon('shopping-bag', 'w-5 h-5')} Order · <span id="detail-total" class="wt-mono">${peso(dish.price)}</span>
+              </button>
+            </div>
+          </div>
+        `);
+      };
 
-  async function sendOrder(){
-    if(!cart.length || busy) return;
-    const table = String(cartTable || '').trim();
-    if(!table){ S.toast('Enter a table number first.'); document.getElementById('cart-table')?.focus(); return; }
-    const customer = String(cartCustomer || '').trim();
-    busy = true;
-    const items = cart.map(c => ({ name: c.name, qty: c.qty, note: c.note, price: c.price }));
-    const total = cart.reduce((s, c) => s + ((Number(c.price) || 0) * (Number(c.qty) || 0)), 0);
-    const order = await S.Data.createOrder({ items, staff: session.name || 'Waiter', total, table, customer });
-    cart = []; cartTable = ''; cartCustomer = ''; busy = false;
-    S.closeDrawer(); render();
-    S.openModal(`
-    <div class="p-9 text-center">
-      <div class="w-20 h-20 rounded-full mx-auto flex items-center justify-center" style="background:var(--info);color:#fff">${icon('send','w-9 h-9')}</div>
-      <p class="font-bold tracking-[.16em] text-xs mt-6" style="color:var(--info)">SENT TO KITCHEN · PENDING</p>
-      <h2 class="font-serif text-3xl font-bold mt-2">${esc(order.code)}</h2>
-      <div class="mt-3 flex justify-center">${tableTag(order)}</div>
-      <p class="text-sm text-muted mt-3">Total: <strong>${peso(orderTotal(order))}</strong></p>
-      <p class="text-sm text-muted mt-1">Waiting for the kitchen to accept. You'll get a notification each time a dish becomes ready.</p>
-      <div class="flex gap-3 mt-6">
-        <button class="btn btn-ghost flex-1" onclick="Savor.closeModal();Savor.navigate('orders')">View my orders</button>
-        <button class="btn btn-primary flex-1" onclick="Savor.closeModal()">New order</button>
-      </div>
-    </div>`);
-    if(S.state.sound) S.chime();
-  }
+      window.detailChangeQty = (delta) => {
+        detailQty = Math.max(1, Math.min(99, detailQty + delta));
+        const q = document.getElementById('detail-qty');
+        const t = document.getElementById('detail-total');
+        if (q) q.textContent = detailQty;
+        if (t) t.textContent = detailTotalText();
+      };
 
-  async function serveItem(orderId, itemIndex){
-    const order = S.state.orders.find(o => o.id === orderId); if(!order) return;
-    if(order.status !== 'READY'){ S.toast('Not ready yet.'); return; }
-    const item = order.items[itemIndex]; if(!item || item.served) return;
-    if(!item.ready){ S.toast('Item is still cooking.'); return; }
-    await S.Data.serveItem(orderId, itemIndex);
-    const updated = S.state.orders.find(o => o.id === orderId);
-    if(updated && updated.status === 'COMPLETED'){
-      S.toast(`${order.code} fully served ✓ · sent to cashier`, 4000, 'alert');
-      if(S.state.sound) S.chime();
-    } else {
-      S.toast(`Served ${item.name} ✓`);
-    }
-    render();
-  }
-  async function serveAllReady(orderId){
-    const order = S.state.orders.find(o => o.id === orderId); if(!order) return;
-    if(order.status !== 'READY'){ S.toast('Not ready yet.'); return; }
-    const ready = order.items.map((it, i) => ({ it, i })).filter(x => x.it.ready && !x.it.served);
-    if(!ready.length){ S.toast('No items ready to serve.'); return; }
-    for(const { i } of ready) await S.Data.serveItem(orderId, i);
-    const updated = S.state.orders.find(o => o.id === orderId);
-    if(updated && updated.status === 'COMPLETED'){
-      S.toast(`${order.code} fully served ✓ · sent to cashier`, 4000, 'alert');
-      if(S.state.sound) S.chime();
-    } else {
-      S.toast(`${ready.length} item${ready.length === 1 ? '' : 's'} served ✓`);
-    }
-    render();
-  }
+      window.orderFromDetail = () => {
+        const dish = S.state.menu.find(m => m.id === detailDishId);
+        if (!dish || !dish.available) { S.Modal.close(); return; }
+        const existing = cart.find(c => c.item.id === dish.id);
+        if (existing) existing.qty += detailQty; else cart.push({ item: dish, qty: detailQty, note: '' });
+        try { if (navigator.vibrate) navigator.vibrate(8); } catch (e) { }
+        S.Modal.close();
+        toast(`${detailQty}× ${esc(dish.name)} added to ticket`, 1800, 'success');
+        refreshOrderUI();
+      };
 
-  window.WT = { setSearch, setFilter, toggleAvailable, openItemPicker, pickerQty, pickerAdd, openCart, setCartTable, setCartCustomer, cartQty, cartRemove, sendOrder, serveItem, serveAllReady };
+      /* ---------- sign-out confirmation ---------- */
+      S.logout = () => {
+        S.Modal.open(`
+          <div class="p-6 max-w-sm mx-auto text-center">
+            <div class="w-12 h-12 rounded-2xl bg-alert-soft mx-auto flex items-center justify-center mb-3" style="color:var(--alert)">
+              ${icon('log-out', 'w-6 h-6')}
+            </div>
+            <h3 class="font-serif font-bold text-xl">Sign out?</h3>
+            <p class="text-sm text-muted mt-2">Are you sure you want to sign out of the waiter terminal?${cart.length ? ' Your current ticket has not been sent and will be lost.' : ''}</p>
+            <div class="flex gap-2.5 mt-5">
+              <button type="button" class="btn btn-ghost flex-1 justify-center" onclick="Savor.Modal.close()">Cancel</button>
+              <button type="button" class="btn flex-1 justify-center" style="background:var(--alert);color:#fff" onclick="Savor.clearSession(); window.location.href='index.html'">Yes, Sign Out</button>
+            </div>
+          </div>
+        `);
+      };
 
-  S.boot({ role: 'waiter', defaultScreen: 'menu', render });
-})();
-</script>
+      function cartBarInnerHtml() {
+        return `
+          <button type="button" onclick="window.openSheet()">
+            <span class="l">
+              <span class="cnt wt-mono">${cartCount()}</span>
+              <span style="min-width:0">
+                <span class="t1" style="display:block">View ticket</span>
+                <span class="t2" style="display:block">${ticketTable.trim() ? esc(ticketTable.trim()) : 'Tap to set table &amp; send'}</span>
+              </span>
+            </span>
+            <span class="r wt-mono">${peso(cartTotal())} ${icon('chevron-up', 'w-5 h-5')}</span>
+          </button>`;
+      }
+
+      function ticketInnerHtml() {
+        const count = cartCount();
+        const total = cartTotal();
+        const choices = getTableChoices();
+        const hasTable = !!ticketTable.trim();
+
+        return `
+          <div class="wt-ph">
+            <div class="wt-grab"></div>
+            <div class="wt-ph-row">
+              <span style="color:var(--primary);display:flex">${icon('receipt', 'w-5 h-5')}</span>
+              <h3>Current Ticket</h3>
+              <span class="wt-count">${count} item${count === 1 ? '' : 's'}</span>
+              ${cart.length ? `<button type="button" class="wt-iconbtn danger" aria-label="Clear ticket" onclick="window.clearCart()">${SVG.trash}</button>` : ''}
+              <button type="button" class="wt-iconbtn wt-close" aria-label="Close ticket" onclick="window.closeSheet()">${SVG.down}</button>
+            </div>
+          </div>
+
+          <div class="wt-pb">
+            <div class="wt-sec">
+              <div class="wt-label">${icon('map-pin', 'w-3.5 h-3.5')} Table / Location</div>
+              <input type="text" id="ticket-table" data-fk="ticket-table" class="wt-field" autocomplete="off" placeholder="e.g. Table 4, Patio 2, Bar 1…" value="${esc(ticketTable)}" oninput="window.setTicketTable(this.value)">
+              <div class="wt-tchips">
+                ${choices.map(t => `<button type="button" class="wt-tchip ${ticketTable.trim() === t ? 'on' : ''}" onclick="window.quickSetTable('${esc(t)}')">${esc(t)}</button>`).join('')}
+              </div>
+              ${!hasTable && cart.length ? `<div class="wt-hint">No table set — this will be sent as “Dine-In”.</div>` : ''}
+            </div>
+
+            <div class="wt-sec">
+              <div class="wt-label">${icon('user', 'w-3.5 h-3.5')} Guest name <em>(optional)</em></div>
+              <input type="text" id="ticket-customer" data-fk="ticket-customer" class="wt-field" autocomplete="off" placeholder="e.g. Maria, Mr. Tan…" value="${esc(customerName)}" oninput="window.setCustomerName(this.value)">
+            </div>
+
+            <div>
+              <div class="wt-label">${icon('list', 'w-3.5 h-3.5')} Order</div>
+              ${cart.map((line, idx) => `
+                <div class="wt-line">
+                  <div class="wt-line-top">
+                    <span class="wt-line-name">${esc(line.item.name)}</span>
+                    <span class="wt-line-price wt-mono">${peso(line.item.price * line.qty)}</span>
+                  </div>
+                  <div class="wt-line-ctl">
+                    <div class="wt-step sm">
+                      <button type="button" aria-label="Less" onclick="window.updateCartQty(${idx}, -1)">−</button>
+                      <b class="wt-mono">${line.qty}</b>
+                      <button type="button" aria-label="More" onclick="window.updateCartQty(${idx}, 1)">+</button>
+                    </div>
+                    <input type="text" class="wt-note" data-fk="note-${idx}" autocomplete="off" placeholder="Kitchen note…" value="${esc(line.note || '')}" oninput="window.setCartNote(${idx}, this.value)">
+                    <button type="button" class="wt-iconbtn danger" aria-label="Remove ${esc(line.item.name)}" onclick="window.removeCartItem(${idx})">${SVG.trash}</button>
+                  </div>
+                </div>
+              `).join('')}
+
+              ${cart.length === 0 ? `
+                <div class="wt-cart-empty">
+                  <div class="ic">${icon('shopping-bag', 'w-6 h-6')}</div>
+                  <h4>Ticket is empty</h4>
+                  <p>Tap any dish on the menu to add it here.</p>
+                  <button type="button" class="wt-btn" style="margin:.8rem auto 0" onclick="window.closeSheet()">Browse menu</button>
+                </div>` : ''}
+            </div>
+          </div>
+
+          <div class="wt-pf">
+            <div class="wt-total"><span>Total</span><b class="wt-mono">${peso(total)}</b></div>
+            <button type="button" class="wt-send" ${cart.length === 0 || sending ? 'disabled' : ''} onclick="window.submitTicket()">
+              ${sending ? 'Sending…' : `${icon('send', 'w-5 h-5')} Send to Kitchen`}
+            </button>
+          </div>
+        `;
+      }
+
+      /* ---------- partial refreshes (keep typing/scroll smooth) ---------- */
+      function updateMenuList() {
+        const el = document.getElementById('wt-menu');
+        if (el) setHtml(el, menuItemsHtml());
+        const x = document.getElementById('wt-clear');
+        if (x) x.hidden = !searchQuery;
+      }
+      function updateChips() {
+        const el = document.getElementById('wt-chips');
+        if (el) setHtml(el, chipsHtml());
+      }
+      function updateCartBar() {
+        const bar = document.getElementById('wt-bar');
+        if (bar) {
+          setHtml(bar, cartBarInnerHtml());
+          bar.classList.toggle('show', cart.length > 0 && !sheetOpen);
+        }
+        const main = document.querySelector('.wt-main');
+        if (main) main.classList.toggle('has-bar', cart.length > 0);
+      }
+      function updatePanel() {
+        const inner = document.getElementById('wt-inner');
+        if (!inner) return;
+        const focus = captureFocus();
+        const pb = inner.querySelector('.wt-pb');
+        const top = pb ? pb.scrollTop : 0;
+        const tc = inner.querySelector('.wt-tchips');
+        const left = tc ? tc.scrollLeft : 0;
+        setHtml(inner, ticketInnerHtml());
+        const pb2 = inner.querySelector('.wt-pb');
+        if (pb2) pb2.scrollTop = top;
+        const tc2 = inner.querySelector('.wt-tchips');
+        if (tc2) tc2.scrollLeft = left;
+        restoreFocus(focus);
+      }
+      function refreshOrderUI() {
+        syncTicketInputsFromDOM();
+        updateMenuList();
+        updatePanel();
+        updateCartBar();
+      }
+
+      /* ---------- sheet open / close ---------- */
+      function applySheet() {
+        const panel = document.getElementById('wt-panel');
+        const back = document.getElementById('wt-backdrop');
+        if (panel) panel.classList.toggle('open', sheetOpen);
+        if (back) back.classList.toggle('show', sheetOpen);
+        document.body.style.overflow = (sheetOpen && !isDesktop()) ? 'hidden' : '';
+        updateCartBar();
+      }
+      window.openSheet = () => {
+        if (sheetOpen) return;
+        syncTicketInputsFromDOM();
+        sheetOpen = true;
+        try { history.pushState({ wtSheet: 1 }, ''); } catch (e) { }
+        updatePanel();
+        applySheet();
+      };
+      window.closeSheet = () => {
+        if (!sheetOpen) return;
+        syncTicketInputsFromDOM();
+        sheetOpen = false;
+        applySheet();
+        if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+        if (history.state && history.state.wtSheet) { try { history.back(); } catch (e) { } }
+      };
+      // Android back button / swipe-back closes the sheet instead of leaving the page
+      window.addEventListener('popstate', () => { if (sheetOpen) { sheetOpen = false; applySheet(); } });
+      document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && sheetOpen) window.closeSheet(); });
+      window.matchMedia('(min-width: 1024px)').addEventListener?.('change', applySheet);
+
+      /* ==================== 2. READY TO SERVE ==================== */
+      function readySince(o) {
+        const ts = (o.items || []).filter(i => i && i.ready && !i.served).map(i => Number(i.readyAt) || 0).filter(Boolean);
+        return ts.length ? Math.min(...ts) : (Number(o.updatedAt) || Number(o.createdAt) || Date.now());
+      }
+
+      function renderReadyScreen(readyOrders) {
+        return `
+          <div class="wt-rhead">
+            <div>
+              <h2>Ready at the Pass</h2>
+              <p>Pick up plated dishes and deliver them to the table.</p>
+            </div>
+            <button type="button" class="wt-btn" onclick="Savor.navigate('menu')">${icon('plus-circle', 'w-4 h-4')} New order</button>
+          </div>
+
+          <div class="wt-rgrid">
+            ${readyOrders.map(o => {
+          const mins = Math.max(0, Math.floor((Date.now() - readySince(o)) / 60000));
+          const late = mins >= 5;
+          const pending = readyUnservedCount(o);
+          return `
+                <article class="wt-rcard">
+                  <div class="wt-rtop">
+                    <div style="min-width:0">
+                      <div class="wt-rtable">${esc(orderMetaText(o) || 'Dine-In')}</div>
+                      <div class="wt-rcode wt-mono">${esc(o.code)} · ordered ${fmtTime(o.createdAt)}</div>
+                    </div>
+                    <span class="wt-wait ${late ? 'late' : ''}">${mins < 1 ? 'Just ready' : mins + 'm waiting'}</span>
+                  </div>
+
+                  ${(o.items || []).map((item, originalIndex) => {
+            if (!item.ready || item.served) return '';
+            return `
+                      <div class="wt-ritem">
+                        <span class="q wt-mono">${item.qty}×</span>
+                        <div class="n">${esc(item.name)}${item.note ? `<small>“${esc(item.note)}”</small>` : ''}</div>
+                        <button type="button" class="wt-deliver" onclick="window.serveDish('${esc(o.id)}', ${originalIndex})">${icon('check', 'w-4 h-4')} Delivered</button>
+                      </div>`;
+          }).join('')}
+
+                  <div class="wt-rfoot">
+                    <small>${servedCount(o)} of ${itemCount(o)} served</small>
+                    ${pending > 1 ? `<button type="button" class="wt-all" onclick="window.serveAllDishes('${esc(o.id)}')">${icon('check-check', 'w-4 h-4')} Deliver all ${pending}</button>` : ''}
+                  </div>
+                </article>`;
+        }).join('')}
+          </div>
+
+          ${readyOrders.length === 0 ? `
+            <div class="wt-done">
+              <div class="ic">${icon('check-circle', 'w-8 h-8')}</div>
+              <h3>All caught up!</h3>
+              <p>Nothing is waiting at the pass. You'll get a chime and an alert here as soon as the chef plates a dish.</p>
+              <button type="button" class="wt-btn" style="margin:0 auto" onclick="Savor.navigate('menu')">${icon('plus-circle', 'w-4 h-4')} Back to order terminal</button>
+            </div>
+          ` : ''}
+        `;
+      }
+
+      /* ==================== WAITER ACTIONS ==================== */
+      window.setCategory = (cat) => { currentCategory = cat; updateChips(); updateMenuList(); };
+      window.setSearch = (val) => { searchQuery = val; updateMenuList(); };
+      window.clearSearch = () => {
+        searchQuery = '';
+        const i = document.querySelector('[data-fk="search"]');
+        if (i) i.value = '';
+        updateMenuList();
+      };
+      window.setTicketTable = (val) => { ticketTable = val; };
+      window.setCustomerName = (val) => { customerName = val; };
+
+      window.quickSetTable = (val) => {
+        syncTicketInputsFromDOM();
+        ticketTable = (ticketTable.trim() === val) ? '' : val;   // tap again to deselect
+        updatePanel();
+        updateCartBar();
+      };
+
+      window.clearCart = () => { syncTicketInputsFromDOM(); cart = []; refreshOrderUI(); };
+
+      window.addToCart = (dishId) => {
+        const dish = S.state.menu.find(m => m.id === dishId);
+        if (!dish || !dish.available) return;
+        const existing = cart.find(c => c.item.id === dishId);
+        if (existing) existing.qty += 1; else cart.push({ item: dish, qty: 1, note: '' });
+        try { if (navigator.vibrate) navigator.vibrate(8); } catch (e) { }
+        refreshOrderUI();
+      };
+
+      window.updateCartQtyByDishId = (dishId, delta) => {
+        const idx = cart.findIndex(c => c.item.id === dishId);
+        if (idx < 0) return;
+        cart[idx].qty += delta;
+        if (cart[idx].qty <= 0) cart.splice(idx, 1);
+        refreshOrderUI();
+      };
+
+      window.updateCartQty = (idx, delta) => {
+        if (!cart[idx]) return;
+        cart[idx].qty += delta;
+        if (cart[idx].qty <= 0) cart.splice(idx, 1);
+        refreshOrderUI();
+      };
+
+      window.setCartNote = (idx, val) => { if (cart[idx]) cart[idx].note = val; };
+
+      window.removeCartItem = (idx) => { cart.splice(idx, 1); refreshOrderUI(); };
+
+      window.submitTicket = async () => {
+        if (sending) return;
+        if (cart.length === 0) { toast('Please add at least one dish to the ticket.', 2500, 'alert'); return; }
+
+        syncTicketInputsFromDOM();
+        ticketTable = ticketTable.trim();
+        customerName = customerName.trim();
+        const finalTable = ticketTable || 'Dine-In';
+
+        const payload = {
+          table: finalTable,
+          customer: customerName,
+          staff: S.session.name || 'Waiter',
+          items: cart.map(line => ({
+            name: line.item.name,
+            price: Number(line.item.price) || 0,
+            qty: Number(line.qty) || 1,
+            note: line.note || ''
+          })),
+          total: cartTotal()
+        };
+
+        sending = true;
+        updatePanel();
+        try {
+          const order = await S.Data.createOrder(payload);
+          sending = false;
+          cart = [];
+          ticketTable = '';
+          customerName = '';
+          if (sheetOpen) window.closeSheet();
+          toast(`Ticket ${esc(order.code)} sent to kitchen (${esc(finalTable)})!`, 3500, 'success');
+          render(false);
+        } catch (err) {
+          sending = false;
+          console.error('Send ticket failed:', err);
+          toast('Could not send the ticket. Check your connection and try again.', 4000);
+          updatePanel();
+        }
+      };
+
+      window.serveDish = async (orderId, itemIndex) => {
+        await S.Data.serveItem(orderId, itemIndex, S.session.name || 'Waiter');
+        try { if (navigator.vibrate) navigator.vibrate(8); } catch (e) { }
+        toast('Dish marked as served to table!', 2000, 'success');
+        render();
+      };
+
+      window.serveAllDishes = async (orderId) => {
+        const o = S.state.orders.find(ord => ord.id === orderId);
+        if (!o) return;
+        for (let i = 0; i < (o.items || []).length; i++) {
+          if (o.items[i].ready && !o.items[i].served) {
+            await S.Data.serveItem(orderId, i, S.session.name || 'Waiter');
+          }
+        }
+        toast(`All ready dishes for ${esc(o.code)} delivered!`, 2500, 'success');
+        render();
+      };
+
+      // keep "Xm waiting" labels fresh on the Ready screen
+      setInterval(() => {
+        if (S.currentScreen === 'ready' && !(document.activeElement && document.activeElement.dataset && document.activeElement.dataset.fk)) render();
+      }, 30000);
+
+      S.boot({ role: 'waiter', defaultScreen: 'menu', render: render });
+    })();
+  </script>
 </body>
+
 </html>
