@@ -201,7 +201,7 @@
         </div>
         <h3 class="font-serif font-bold text-xl">${role.title}</h3>
         <p class="text-xs text-muted mt-0.5 mb-3">
-          ${isAdminStation ? 'Enter 4-digit Master PIN (1212) to unlock Admin CMS' : `Enter Station PIN (${role.defaultPin}) or sign in with staff username`}
+          ${isAdminStation ? '' : `Enter Station PIN (${role.defaultPin}) or sign in with staff username`}
         </p>
 
         ${!isAdminStation ? `
