@@ -141,7 +141,7 @@
         </div>
         <div class="flex items-center gap-2.5">
           <label class="text-xs text-muted font-bold uppercase">Specific Date:</label>
-          <input type="date" class="input py-1 px-2.5 text-xs font-mono" value="${dashCustomDate}" onchange="window.setDashCustomDate(this.value)">
+          <input type="date" class="input py-1 px-2.5 text-xs font-mono w-auto" value="${dashCustomDate}" onchange="window.setDashCustomDate(this.value)">
           <span class="pill pill-paid text-xs font-semibold">${dayFilterLabel} · ${orders.length} orders</span>
         </div>
       </div>
@@ -365,12 +365,12 @@
 
       <div class="card p-4 mb-6 bg-surface-2/40 border border-border flex flex-wrap items-center justify-between gap-4">
         <div class="flex flex-wrap items-center gap-3">
-          <div class="flex items-center gap-1 bg-surface-2 p-1 rounded-xl border border-border text-xs">
+          <div class="flex flex-wrap items-center gap-1 bg-surface-2 p-1 rounded-xl border border-border text-xs">
             <span class="text-muted font-bold px-2 uppercase text-[11px]">${icon('calendar', 'w-3 h-3 inline mr-1 text-amber-500')} Day:</span>
             <button class="btn ${ordersDayFilter === 'TODAY' ? 'btn-primary' : 'btn-ghost'} py-1 px-2.5 text-xs rounded-lg" onclick="window.setOrdersDayFilter('TODAY')">Today</button>
             <button class="btn ${ordersDayFilter === 'YESTERDAY' ? 'btn-primary' : 'btn-ghost'} py-1 px-2.5 text-xs rounded-lg" onclick="window.setOrdersDayFilter('YESTERDAY')">Yesterday</button>
             <button class="btn ${ordersDayFilter === 'ALL' ? 'btn-primary' : 'btn-ghost'} py-1 px-2.5 text-xs rounded-lg" onclick="window.setOrdersDayFilter('ALL')">All Days</button>
-            <input type="date" class="input py-0.5 px-2 text-xs font-mono ml-1" value="${ordersCustomDate}" onchange="window.setOrdersCustomDate(this.value)">
+            <input type="date" class="input py-0.5 px-2 text-xs font-mono ml-1 w-auto" value="${ordersCustomDate}" onchange="window.setOrdersCustomDate(this.value)">
           </div>
 
           <div class="flex items-center gap-1 bg-surface-2 p-1 rounded-xl border border-border text-xs">
@@ -599,7 +599,7 @@
           <div class="p-4 bg-surface rounded-xl border border-border flex flex-wrap items-center justify-between gap-4">
             <div class="flex flex-wrap items-center gap-3">
               <label class="text-xs font-bold uppercase text-muted">Select Day:</label>
-              <input type="date" id="reset-day-input" class="input py-1.5 px-3 text-xs font-mono max-w-[170px]" value="${settingsResetDate}" onchange="window.setSettingsResetDate(this.value)">
+              <input type="date" id="reset-day-input" class="input py-1.5 px-3 text-xs font-mono max-w-[170px] w-auto" value="${settingsResetDate}" onchange="window.setSettingsResetDate(this.value)">
               <button type="button" class="btn ${settingsResetDate === S.fmtDateKey(Date.now()) ? 'btn-primary' : 'btn-ghost'} py-1 px-2.5 text-xs rounded-lg" onclick="window.setSettingsResetDate('${S.fmtDateKey(Date.now())}')">
                 Today
               </button>

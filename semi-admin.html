@@ -191,7 +191,7 @@
           <button class="btn ${ordersDayFilter === 'ALL' ? 'btn-primary' : 'btn-ghost'} py-1 px-3 text-xs rounded-xl" onclick="window.setOrdersDayFilter('ALL')">
             All Days
           </button>
-          <input type="date" class="input py-0.5 px-2 text-xs font-mono ml-1" value="${ordersCustomDate}" onchange="window.setOrdersCustomDate(this.value)">
+          <input type="date" class="input py-0.5 px-2 text-xs font-mono ml-1 w-auto" value="${ordersCustomDate}" onchange="window.setOrdersCustomDate(this.value)">
         </div>
 
         <div class="flex items-center gap-1 bg-surface-2 p-1 rounded-xl border border-border text-xs">
