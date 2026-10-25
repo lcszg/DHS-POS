@@ -113,7 +113,7 @@
             Select Your Station
           </h2>
           <p class="text-sm sm:text-base text-muted leading-relaxed">
-            Tap your station to sign in. Executive Admin signs in with 4-digit Master PIN only; staff stations require registered username and 4-digit PIN.
+            Tap your station to sign in. Staff stations require a registered username and 4-digit PIN. Master Admin PIN bypasses the username requirement.
           </p>
         </div>
 
@@ -201,22 +201,22 @@
         </div>
         <h3 class="font-serif font-bold text-xl">${role.title}</h3>
         <p class="text-xs text-muted mt-0.5 mb-3">
-          ${isAdminStation ? 'Enter 4-digit Master PIN (1212) to unlock Admin CMS' : `Enter Station PIN (${role.defaultPin}) or sign in with staff username`}
+          ${isAdminStation ? 'Enter 4-digit Master PIN to unlock Admin CMS' : `Enter your registered staff username and 4-digit PIN`}
         </p>
 
         ${!isAdminStation ? `
           <div class="mb-3 text-left">
-            <label class="block text-xs font-bold text-muted uppercase tracking-wider mb-1">Staff Username (Optional)</label>
+            <label class="block text-xs font-bold text-muted uppercase tracking-wider mb-1">Staff Username <span class="text-rose-500">*</span></label>
             <div class="relative">
               <span class="absolute left-3.5 top-3 text-xs text-muted font-mono font-bold">@</span>
-              <input type="text" id="login-username" class="input pl-8 py-2 text-sm font-mono tracking-wide" placeholder="Optional (e.g. ${role.key === 'waiter' ? 'waiter' : role.key})" value="${esc(currentUsername)}" autocomplete="off" oninput="window.updateLoginUser(this.value)">
+              <input type="text" id="login-username" class="input pl-8 py-2 text-sm font-mono tracking-wide" placeholder="Enter username" value="${esc(currentUsername)}" autocomplete="off" oninput="window.updateLoginUser(this.value)">
             </div>
           </div>
         ` : ''}
 
         <div class="mb-3 text-left">
           <label class="block text-xs font-bold text-muted uppercase tracking-wider mb-1">
-            ${isAdminStation ? '4-Digit Master PIN (Default: 1212)' : `4-Digit PIN (Default: ${role.defaultPin})`}
+            ${isAdminStation ? '4-Digit Master PIN' : `4-Digit PIN`}
           </label>
           <div id="pin-dots-container" class="flex items-center justify-center gap-3.5 py-2.5 bg-surface-2 rounded-xl border border-border select-none">
             ${dots}
@@ -299,7 +299,7 @@
         };
         const adminPin = String(adminAccount.pin || '1212').trim();
 
-        // Admin Station login
+        // 1. Admin Station login
         if (activeRoleKey === 'admin') {
           if (currentPin === adminPin || currentPin === '1212') {
             const cleanAdmin = { ...adminAccount, role: 'Admin', pin: adminPin };
@@ -318,7 +318,7 @@
           }
         }
 
-        // Master PIN override to enter any station as Admin
+        // 2. Master PIN override to enter any station as Admin (Bypasses username requirement)
         if (currentPin === adminPin || currentPin === '1212') {
           S.setSession({ id: 'acc-admin', name: 'Restaurant Owner', role: 'Admin', pin: adminPin });
           S.Modal.close();
@@ -329,62 +329,31 @@
           return;
         }
 
-        // Default Station PIN login (e.g. 3333 for Waiter, 4444 for Kitchen, 5555 for Cashier, 2222 for Floor Manager)
-        if (currentPin === String(role.defaultPin)) {
-          const defaultAcc = S.state.accounts.find(a => {
-            const aRole = String(a.role || '').toLowerCase().replace(/[\s_-]+/g, '');
-            const rKey = String(role.key).toLowerCase().replace(/[\s_-]+/g, '');
-            return aRole === rKey || (rKey === 'waiter' && aRole === 'waiter') || (rKey === 'semiadmin' && (aRole === 'semiadmin' || aRole === 'floormanager'));
-          }) || {
-            id: 'acc-' + role.key,
-            name: role.title.replace(' Portal', '').replace(' (KDS)', ''),
-            role: role.key === 'semi_admin' ? 'Semi-Admin' : (role.key.charAt(0).toUpperCase() + role.key.slice(1)),
-            pin: role.defaultPin,
-            status: 'Active'
-          };
-
-          S.setSession(defaultAcc);
-          S.Modal.close();
-          toast(`Welcome to ${role.title}!`, 2000, 'success');
-          setTimeout(() => {
-            window.location.href = role.page;
-          }, 150);
-          return;
-        }
-
-        // Individual Staff Account login by username and PIN
+        // 3. Strict Username Requirement for all staff stations
         const domUser = document.getElementById('login-username');
         const rawUser = (domUser?.value || currentUsername || '').trim();
         const cleanUser = S.sanitizeUsername(rawUser).toLowerCase();
 
+        if (!cleanUser) {
+          shakeAndError('Staff username is required to sign in.');
+          return;
+        }
+
+        // 4. Individual Staff Account login by username and PIN
         const matchedAccount = S.state.accounts.find(a => {
-          if (!a || !a.pin) return false;
+          if (!a || !a.pin || !a.username) return false;
           const pMatch = String(a.pin || '').trim() === currentPin;
-          if (!pMatch) return false;
-          if (cleanUser && a.username) {
-            return S.sanitizeUsername(a.username).toLowerCase() === cleanUser;
-          }
-          const aRole = String(a.role || '').toLowerCase().replace(/[\s_-]+/g, '');
-          const rKey = String(role.key).toLowerCase().replace(/[\s_-]+/g, '');
-          return aRole === rKey || (rKey === 'semiadmin' && (aRole === 'semiadmin' || aRole === 'floormanager'));
+          const uMatch = S.sanitizeUsername(a.username).toLowerCase() === cleanUser;
+          return pMatch && uMatch;
         });
 
         if (!matchedAccount) {
-          if (cleanUser) {
-            const userExists = S.state.accounts.find(a => a && a.username && S.sanitizeUsername(a.username).toLowerCase() === cleanUser);
-            if (userExists) {
-              shakeAndError(`Incorrect 4-digit PIN for @${cleanUser}.`);
-            } else {
-              shakeAndError(`No active staff account found with username @${cleanUser}. (Default PIN is ${role.defaultPin})`);
-            }
-          } else {
-            shakeAndError(`Incorrect Station PIN. The default PIN for this station is ${role.defaultPin}.`);
-          }
+          shakeAndError(`Incorrect username or PIN for @${cleanUser}.`);
           return;
         }
 
         if (matchedAccount.status === 'Inactive') {
-          shakeAndError(`Staff account @${matchedAccount.username || matchedAccount.name} is currently set to Inactive.`);
+          shakeAndError(`Staff account @${matchedAccount.username} is currently set to Inactive.`);
           return;
         }
 
