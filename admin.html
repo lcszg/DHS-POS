@@ -41,6 +41,7 @@
       let ordersDayFilter = 'ALL';
       let ordersCustomDate = S.fmtDateKey(Date.now());
       let settingsResetDate = S.fmtDateKey(Date.now());
+      let isConnecting = false;
 
       function filterOrdersByDay(list, filterType, customDate) {
         if (filterType === 'ALL') return list;
@@ -558,28 +559,6 @@
           </div>
         </div>
 
-        <div class="card p-6 mb-6">
-          <h3 class="text-lg font-bold mb-4">Restaurant Profile &amp; Billing Rates</h3>
-          <div class="grid sm:grid-cols-2 gap-4">
-            <div>
-              <label class="block text-xs font-bold uppercase text-muted mb-1">Restaurant Name</label>
-              <input type="text" class="input text-xs" value="Food &amp; Beverage">
-            </div>
-            <div>
-              <label class="block text-xs font-bold uppercase text-muted mb-1">Currency Symbol</label>
-              <input type="text" class="input text-xs" value="${esc(S.CONFIG.CURRENCY)}">
-            </div>
-            <div>
-              <label class="block text-xs font-bold uppercase text-muted mb-1">VAT / Tax Rate (%)</label>
-              <input type="number" class="input text-xs" value="12">
-            </div>
-            <div>
-              <label class="block text-xs font-bold uppercase text-muted mb-1">Service Charge (%)</label>
-              <input type="number" class="input text-xs" value="5">
-            </div>
-          </div>
-        </div>
-
         <div class="card p-6 mb-6 border border-rose-500/30 bg-surface-2/40">
           <div class="flex flex-wrap justify-between items-start gap-4 mb-4">
             <div>
@@ -1060,15 +1039,25 @@
       };
 
       window.saveSettingsDb = () => {
+        if (isConnecting) return;
+        isConnecting = true;
+        
         const url = document.getElementById('set-url')?.value.trim() || '';
         const key = document.getElementById('set-key')?.value.trim() || '';
         S.CONFIG.SUPABASE_URL = S.cleanSupabaseUrl(url);
         S.CONFIG.SUPABASE_KEY = key;
         S.safeSet('savor.supabase_url', S.CONFIG.SUPABASE_URL);
         S.safeSet('savor.supabase_key', S.CONFIG.SUPABASE_KEY);
+        
         toast('Connecting to Supabase Cloud...', 3000, 'info');
+        
         S.initSupabase().then(() => {
+          isConnecting = false;
           toast('Supabase cloud connected and live!', 3000, 'success');
+          render();
+        }).catch(() => {
+          isConnecting = false;
+          toast('Failed to connect. Check your URL and Key.', 3000, 'alert');
           render();
         });
       };
