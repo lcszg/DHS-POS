@@ -8,9 +8,7 @@
   <title>Food &amp; Beverage — Restaurant CMS &amp; Admin</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link
-    href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400..700;1,9..40,400..700&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap"
-    rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400..700;1,9..40,400..700&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap" rel="stylesheet">
   <script>tailwind.config = { darkMode: 'class', theme: { extend: { colors: { bg: 'var(--bg)', surface: 'var(--surface)', 'surface-2': 'var(--surface-2)', 'surface-3': 'var(--surface-3)', border: 'var(--border)', ink: 'var(--ink)', muted: 'var(--text-muted)', primary: 'var(--primary)' } } } };</script>
   <script src="https://cdn.tailwindcss.com/3.4.17"></script>
   <script src="https://cdn.jsdelivr.net/npm/lucide@0.577.0/dist/umd/lucide.min.js"></script>
@@ -27,14 +25,13 @@
       if (!session) return;
       S.session = session;
 
-      const { $, esc, icon, peso, toast, setHtml, statusPill, paymentPill, orderTotal, hasMeta, orderMetaText,
-        tableTag, itemCount, readyCount, unreadyCount, servedCount, itemSummary, menuHero, sanitizeUsername, processImageFile, fmtTime, fmtDateTime } = S;
+      const { $, esc, icon, peso, toast, setHtml, statusPill, paymentPill, orderTotal, tableTag, itemCount,
+        readyCount, menuHero, processImageFile, fmtDateTime } = S;
 
       let menuFilter = 'All';
       let menuSearch = '';
       let ordersFilter = 'ALL';
       let ordersSearch = '';
-      let activeImageUpload = '';
 
       let dashDayFilter = 'TODAY';
       let dashCustomDate = S.fmtDateKey(Date.now());
@@ -86,16 +83,16 @@
     `);
       }
 
-      /* ==================== 1. DASHBOARD ==================== */
       function viewDashboard() {
         const allOrders = S.state.orders;
         const orders = filterOrdersByDay(allOrders, dashDayFilter, dashCustomDate);
+        const liveOrders = orders.filter(o => o.status !== 'CANCELLED');
 
         const pending = orders.filter(o => o.status === 'PENDING');
         const cooking = orders.filter(o => o.status === 'PREPARING');
         const ready = orders.filter(o => o.status === 'READY');
         const served = orders.filter(o => o.status === 'COMPLETED');
-        const paid = orders.filter(o => o.payment === 'PAID');
+        const paid = orders.filter(o => o.payment === 'PAID' && o.status !== 'CANCELLED');
         const awaitingPay = orders.filter(o => o.status === 'COMPLETED' && o.payment !== 'PAID');
 
         const totalRevenue = paid.reduce((sum, o) => sum + orderTotal(o), 0);
@@ -103,7 +100,7 @@
         const avgCheck = paid.length > 0 ? (totalRevenue / paid.length) : 0;
 
         const salesTally = {};
-        orders.forEach(o => {
+        liveOrders.forEach(o => {
           (o.items || []).forEach(item => {
             salesTally[item.name] = (salesTally[item.name] || 0) + (Number(item.qty) || 1);
           });
@@ -119,7 +116,7 @@
       <div class="flex flex-wrap justify-between items-center gap-4 mb-6">
         <div>
           <h2 class="font-serif text-2xl md:text-3xl font-bold tracking-tight">Executive Restaurant CMS</h2>
-          <p class="text-sm text-muted mt-1">Live service monitor, staff 4-digit PIN management, and real-time cloud sync.</p>
+          <p class="text-sm text-muted mt-1">Live service monitor, staff PIN management, and real-time cloud sync.</p>
         </div>
         <div class="flex items-center gap-2">
           <button class="btn btn-ghost" onclick="Savor.navigate('settings')">
@@ -143,7 +140,7 @@
         <div class="flex items-center gap-2.5">
           <label class="text-xs text-muted font-bold uppercase">Specific Date:</label>
           <input type="date" class="input py-1 px-2.5 text-xs font-mono w-auto" value="${dashCustomDate}" onchange="window.setDashCustomDate(this.value)">
-          <span class="pill pill-paid text-xs font-semibold">${dayFilterLabel} · ${orders.length} orders</span>
+          <span class="pill pill-paid text-xs font-semibold">${dayFilterLabel} · ${liveOrders.length} orders</span>
         </div>
       </div>
 
@@ -171,7 +168,7 @@
             <span>Total Orders (${dayFilterLabel})</span>
             <span class="w-8 h-8 rounded-xl bg-sky-500/10 text-sky-500 flex items-center justify-center">${icon('shopping-bag', 'w-4 h-4')}</span>
           </div>
-          <div class="text-3xl font-bold mt-3">${orders.length}</div>
+          <div class="text-3xl font-bold mt-3">${liveOrders.length}</div>
           <div class="text-xs text-muted mt-1">Avg check: ${peso(avgCheck)}</div>
         </div>
 
@@ -219,7 +216,7 @@
           <div class="mt-5 border-t border-border pt-4">
             <h4 class="text-xs font-bold uppercase tracking-wider text-muted mb-3">Live Order Stream</h4>
             <div class="space-y-2">
-              ${orders.slice(0, 5).map(o => `
+              ${liveOrders.slice(0, 5).map(o => `
                 <div class="flex items-center justify-between p-2.5 rounded-xl bg-surface-2 border border-border/60 text-sm flex-wrap gap-2">
                   <div class="flex items-center gap-3">
                     <strong class="font-mono">${esc(o.code)}</strong>
@@ -266,11 +263,9 @@
     `;
       }
 
-      /* ==================== 2. MENU CMS ==================== */
       function viewMenuCMS() {
         const categories = ['All', 'Appetizer', 'Main Dish', 'Dessert', 'Drinks'];
         const q = menuSearch.trim().toLowerCase();
-
         const filtered = S.state.menu.filter(m => {
           const matchCat = (menuFilter === 'All' || m.category === menuFilter);
           const matchSearch = !q || m.name.toLowerCase().includes(q) || (m.ingredients || '').toLowerCase().includes(q);
@@ -306,46 +301,41 @@
           <div class="card p-4 flex flex-col justify-between group ${!dish.available ? 'opacity-60 border-dashed' : ''}">
             <div>
               ${menuHero(dish, 'h-40')}
-
               <div class="flex justify-between items-start mb-1">
                 <span class="text-xs text-amber-500 font-semibold uppercase tracking-wider">${esc(dish.category)}</span>
-                <button class="pill ${dish.available ? 'pill-paid' : 'pill-alert'} cursor-pointer text-[10px]" onclick="window.toggleDishAvailable('${dish.id}')" title="Click to toggle availability">
+                <button class="pill ${dish.available ? 'pill-paid' : 'pill-alert'} cursor-pointer text-[10px]" onclick="window.toggleDishAvailable('${dish.id}')" title="Toggle availability">
                   ${dish.available ? 'Available' : '86 / Sold Out'}
                 </button>
               </div>
-
               <h4 class="font-bold text-base mt-1 group-hover:text-amber-500 transition-colors">${esc(dish.name)}</h4>
               <p class="text-xs text-muted mt-1 line-clamp-2">${esc(dish.description || 'No description provided.')}</p>
               ${dish.ingredients ? `<small class="text-[11px] text-muted/80 block mt-2 italic line-clamp-1">Ingredients: ${esc(dish.ingredients)}</small>` : ''}
             </div>
-
             <div class="mt-4 pt-3 border-t border-border flex items-center justify-between">
-              <div>
-                <strong class="text-base font-bold text-ink">${peso(dish.price)}</strong>
-              </div>
+              <strong class="text-base font-bold text-ink">${peso(dish.price)}</strong>
               <div class="flex items-center gap-1">
-                <button class="icon-btn w-7 h-7 text-xs" onclick="window.openDishModal('${dish.id}')" title="Edit Dish">${icon('pencil', 'w-3.5 h-3.5')}</button>
-                <button class="icon-btn w-7 h-7 text-xs text-rose-500 hover:bg-rose-500/10" onclick="window.deleteDish('${dish.id}')" title="Delete Dish">${icon('trash-2', 'w-3.5 h-3.5')}</button>
+                <button class="icon-btn w-7 h-7 text-xs" onclick="window.openDishModal('${dish.id}')" title="Edit">${icon('pencil', 'w-3.5 h-3.5')}</button>
+                <button class="icon-btn w-7 h-7 text-xs text-rose-500 hover:bg-rose-500/10" onclick="window.deleteDish('${dish.id}')" title="Delete">${icon('trash-2', 'w-3.5 h-3.5')}</button>
               </div>
             </div>
           </div>
         `).join('')}
       </div>
-      ${filtered.length === 0 ? `<div class="card p-12 text-center text-muted mt-4">No dishes found matching your criteria.</div>` : ''}
+      ${filtered.length === 0 ? `<div class="card p-12 text-center text-muted mt-4">No dishes found.</div>` : ''}
     `;
       }
 
-      /* ==================== 4. ORDERS AUDIT LOG ==================== */
       function viewOrdersCMS() {
         const allOrders = S.state.orders;
         const dayOrders = filterOrdersByDay(allOrders, ordersDayFilter, ordersCustomDate);
         const q = ordersSearch.trim().toLowerCase();
 
         const filtered = dayOrders.filter(o => {
-          const matchFilter = (ordersFilter === 'ALL') ||
-            (ordersFilter === 'ACTIVE' && (o.status === 'PENDING' || o.status === 'PREPARING' || o.status === 'READY')) ||
-            (ordersFilter === 'PAID' && o.payment === 'PAID') ||
-            (ordersFilter === 'UNPAID' && o.payment !== 'PAID');
+          const matchFilter = (ordersFilter === 'ALL')
+            || (ordersFilter === 'ACTIVE' && (o.status === 'PENDING' || o.status === 'PREPARING' || o.status === 'READY'))
+            || (ordersFilter === 'PAID' && o.payment === 'PAID' && o.status !== 'CANCELLED')
+            || (ordersFilter === 'UNPAID' && o.payment !== 'PAID' && o.status !== 'CANCELLED')
+            || (ordersFilter === 'CANCELLED' && o.status === 'CANCELLED');
           const matchSearch = !q || o.code.toLowerCase().includes(q) || (o.table || '').toLowerCase().includes(q) || (o.customer || '').toLowerCase().includes(q);
           return matchFilter && matchSearch;
         });
@@ -374,8 +364,8 @@
             <input type="date" class="input py-0.5 px-2 text-xs font-mono ml-1 w-auto" value="${ordersCustomDate}" onchange="window.setOrdersCustomDate(this.value)">
           </div>
 
-          <div class="flex items-center gap-1 bg-surface-2 p-1 rounded-xl border border-border text-xs">
-            ${['ALL', 'ACTIVE', 'PAID', 'UNPAID'].map(f => `
+          <div class="flex flex-wrap items-center gap-1 bg-surface-2 p-1 rounded-xl border border-border text-xs">
+            ${['ALL', 'ACTIVE', 'PAID', 'UNPAID', 'CANCELLED'].map(f => `
               <button class="btn ${ordersFilter === f ? 'btn-primary' : 'btn-ghost'} py-1 px-2.5 text-xs rounded-lg" onclick="window.setOrdersFilter('${f}')">
                 ${f}
               </button>
@@ -400,22 +390,18 @@
                 <th class="p-3.5">Status</th>
                 <th class="p-3.5">Payment</th>
                 <th class="p-3.5">Time</th>
-                <th class="p-3.5 text-right">Action</th>
               </tr>
             </thead>
             <tbody class="divide-y divide-border">
               ${filtered.map(o => `
-                <tr class="hover:bg-surface-2/50 transition-colors">
+                <tr class="hover:bg-surface-2/50 transition-colors ${o.status === 'CANCELLED' ? 'opacity-60' : ''}">
                   <td class="p-3.5 font-mono font-bold" data-label="Code">${esc(o.code)}</td>
                   <td class="p-3.5" data-label="Table">${tableTag(o) || '<span class="text-muted text-xs">—</span>'}</td>
-                  <td class="p-3.5 max-w-xs truncate text-xs" data-label="Items">${esc(itemSummary(o))}</td>
+                  <td class="p-3.5 max-w-xs truncate text-xs" data-label="Items">${esc((o.items || []).map(i => `${i.qty}× ${i.name}`).join(' · '))}</td>
                   <td class="p-3.5 font-bold" data-label="Total">${peso(orderTotal(o))}</td>
                   <td class="p-3.5" data-label="Status">${statusPill(o.status)}</td>
                   <td class="p-3.5" data-label="Payment">${paymentPill(o)}</td>
                   <td class="p-3.5 text-xs text-muted" data-label="Time">${fmtDateTime(o.createdAt)}</td>
-                  <td class="p-3.5 text-right" data-label="">
-                    <button class="btn btn-ghost py-1 px-2.5 text-xs" onclick="window.inspectOrder('${o.id}')">View</button>
-                  </td>
                 </tr>
               `).join('')}
             </tbody>
@@ -426,15 +412,13 @@
     `;
       }
 
-      /* ==================== 5. STAFF PINs ==================== */
       function viewStaffCMS() {
         const accounts = S.state.accounts;
-
         return `
       <div class="flex flex-wrap justify-between items-center gap-4 mb-6">
         <div>
           <h2 class="font-serif text-2xl font-bold tracking-tight">Staff &amp; 4-Digit PIN Access CMS</h2>
-          <p class="text-sm text-muted mt-1">Manage staff accounts. Usernames are names only (letters only). PINs are 4 digits for station sign-in.</p>
+          <p class="text-sm text-muted mt-1">Manage staff accounts. Usernames are names only. PINs are 4 digits for station sign-in.</p>
         </div>
         <button class="btn btn-primary" onclick="window.openStaffModal()">
           ${icon('user-plus', 'w-4 h-4')} Add Staff Account
@@ -448,8 +432,8 @@
               <tr>
                 <th class="p-4">Staff Member</th>
                 <th class="p-4">Username</th>
-                <th class="p-4">Assigned Role</th>
-                <th class="p-4">4-Digit PIN</th>
+                <th class="p-4">Role</th>
+                <th class="p-4">PIN</th>
                 <th class="p-4">Status</th>
                 <th class="p-4 text-right">Actions</th>
               </tr>
@@ -471,25 +455,15 @@
                     </div>
                   </td>
                   <td class="p-4 font-mono text-xs text-amber-400" data-label="Username">
-                    ${isAdminAcc ? '<span class="text-muted text-xs italic font-sans">PIN Only (No Username)</span>' : '@' + esc(acc.username)}
+                    ${isAdminAcc ? '<span class="text-muted text-xs italic font-sans">PIN Only</span>' : '@' + esc(acc.username)}
                   </td>
-                  <td class="p-4" data-label="Role">
-                    <span class="pill pill-info">${esc(acc.role)}</span>
-                  </td>
-                  <td class="p-4 font-mono font-bold text-amber-400 text-base tracking-widest" data-label="PIN">
-                    ${esc(acc.pin || '1212')}
-                  </td>
-                  <td class="p-4" data-label="Status">
-                    <span class="pill ${acc.status === 'Active' ? 'pill-paid' : 'pill-alert'}">${acc.status || 'Active'}</span>
-                  </td>
+                  <td class="p-4" data-label="Role"><span class="pill pill-info">${esc(acc.role)}</span></td>
+                  <td class="p-4 font-mono font-bold text-amber-400 text-base tracking-widest" data-label="PIN">${esc(acc.pin || '1212')}</td>
+                  <td class="p-4" data-label="Status"><span class="pill ${acc.status === 'Active' ? 'pill-paid' : 'pill-alert'}">${acc.status || 'Active'}</span></td>
                   <td class="p-4 text-right" data-label="">
                     <div class="flex items-center justify-end gap-1.5">
-                      <button class="btn btn-ghost py-1 px-2.5 text-xs" onclick="window.openStaffModal('${acc.id}')">
-                        ${isAdminAcc ? 'Change PIN' : 'Edit'}
-                      </button>
-                      ${!isAdminAcc ? `
-                        <button class="btn btn-ghost py-1 px-2.5 text-xs text-rose-500 hover:bg-rose-500/10" onclick="window.deleteStaff('${acc.id}')">Delete</button>
-                      ` : ''}
+                      <button class="btn btn-ghost py-1 px-2.5 text-xs" onclick="window.openStaffModal('${acc.id}')">${isAdminAcc ? 'Change PIN' : 'Edit'}</button>
+                      ${!isAdminAcc ? `<button class="btn btn-ghost py-1 px-2.5 text-xs text-rose-500 hover:bg-rose-500/10" onclick="window.deleteStaff('${acc.id}')">Delete</button>` : ''}
                     </div>
                   </td>
                 </tr>
@@ -502,20 +476,19 @@
     `;
       }
 
-      /* ==================== 6. SETTINGS ==================== */
       function viewSettingsCMS() {
         return `
       <div class="max-w-3xl">
         <h2 class="font-serif text-2xl font-bold tracking-tight mb-1">System &amp; Cloud Settings</h2>
-        <p class="text-sm text-muted mb-6">Configure online cloud databases, tax rates, restaurant branding, and backups.</p>
+        <p class="text-sm text-muted mb-6">Configure online cloud databases, restaurant branding, and backups.</p>
 
         <div class="card p-6 mb-6">
           <div class="flex flex-wrap justify-between items-start gap-3 mb-4">
             <div>
               <h3 class="text-lg font-bold flex items-center gap-2">
-                ${icon('database', 'w-5 h-5 text-amber-500')} Supabase Cloud Database (Online)
+                ${icon('database', 'w-5 h-5 text-amber-500')} Supabase Cloud Database
               </h3>
-              <p class="text-xs text-muted mt-1">Multi-user real-time PostgreSQL database hosted in the cloud. Synchronizes orders and menu across all devices.</p>
+              <p class="text-xs text-muted mt-1">Multi-user real-time PostgreSQL database hosted in the cloud.</p>
             </div>
             <span class="pill ${S.state.net === 'realtime' ? 'pill-paid' : 'pill-unpaid'}">
               ${S.state.net === 'realtime' ? '🟢 Supabase Realtime Active' : '⚪ Local Storage Mode'}
@@ -528,21 +501,9 @@
               <input type="text" id="set-url" class="input text-xs" value="${esc(S.CONFIG.SUPABASE_URL)}" placeholder="https://xyzcompany.supabase.co">
             </div>
             <div>
-              <label class="block text-xs font-bold uppercase text-muted mb-1">Supabase Anon Key (Public)</label>
-              <textarea id="set-key" class="input font-mono text-xs" rows="2" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...">${esc(S.CONFIG.SUPABASE_KEY)}</textarea>
+              <label class="block text-xs font-bold uppercase text-muted mb-1">Supabase Anon Key</label>
+              <textarea id="set-key" class="input font-mono text-xs" rows="2">${esc(S.CONFIG.SUPABASE_KEY)}</textarea>
             </div>
-
-            <div class="bg-surface-2 p-3.5 rounded-xl text-xs space-y-2 border border-border">
-              <div class="font-bold text-ink flex items-center gap-1.5">
-                ${icon('sparkles', 'w-3.5 h-3.5 text-amber-400')} How to Connect Your Free Supabase Database
-              </div>
-              <p class="text-muted leading-relaxed">
-                1. Sign up for a free project at <a href="https://supabase.com" target="_blank" class="text-amber-500 underline font-semibold">supabase.com</a>.<br>
-                2. Open the <b>SQL Editor</b> tab in Supabase, paste our schema, and click <b>Run</b>.<br>
-                3. Go to <i>Project Settings &gt; API</i>, copy your <b>Project URL</b> and <b>anon public key</b>, and paste them above.
-              </p>
-            </div>
-
             <div class="flex flex-wrap gap-2 pt-2">
               <button class="btn btn-primary" onclick="window.saveSettingsDb()">
                 ${icon('check', 'w-4 h-4')} Save &amp; Connect Cloud
@@ -550,11 +511,6 @@
               <button class="btn btn-ghost" onclick="Savor.copySqlSchema()">
                 ${icon('copy', 'w-4 h-4')} Copy Supabase SQL Schema
               </button>
-              ${S.CONFIG.SUPABASE_URL ? `
-                <button class="btn btn-ghost text-muted hover:text-rose-500" onclick="window.disconnectCloud()">
-                  ${icon('power', 'w-4 h-4')} Switch to Local Mode
-                </button>
-              ` : ''}
             </div>
           </div>
         </div>
@@ -565,31 +521,21 @@
               <div class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-rose-500/10 text-rose-500 text-xs font-bold mb-2 border border-rose-500/20">
                 ${icon('calendar-x', 'w-3.5 h-3.5')} Daily Service Management
               </div>
-              <h3 class="text-lg font-bold">Reset Day's Orders &amp; Service History</h3>
+              <h3 class="text-lg font-bold">Reset Day's Orders</h3>
               <p class="text-xs text-muted mt-1 leading-relaxed max-w-xl">
-                Reset and clear all active orders, kitchen tickets, and settlement history made on a specific day. All dining tables are returned to <b>AVAILABLE</b>. Your menu catalog, prices, and staff accounts remain completely safe and untouched.
+                Reset and clear all active orders for a specific day. Tables return to AVAILABLE. Menu and staff are untouched.
               </p>
             </div>
-            <span class="pill pill-alert text-xs font-semibold">
-              ${icon('shield-alert', 'w-3.5 h-3.5')} Single-Day Target
-            </span>
           </div>
 
           <div class="p-4 bg-surface rounded-xl border border-border flex flex-wrap items-center justify-between gap-4">
             <div class="flex flex-wrap items-center gap-3">
               <label class="text-xs font-bold uppercase text-muted">Select Day:</label>
               <input type="date" id="reset-day-input" class="input py-1.5 px-3 text-xs font-mono max-w-[170px] w-auto" value="${settingsResetDate}" onchange="window.setSettingsResetDate(this.value)">
-              <button type="button" class="btn ${settingsResetDate === S.fmtDateKey(Date.now()) ? 'btn-primary' : 'btn-ghost'} py-1 px-2.5 text-xs rounded-lg" onclick="window.setSettingsResetDate('${S.fmtDateKey(Date.now())}')">
-                Today
-              </button>
-              <button type="button" class="btn ${settingsResetDate === S.fmtDateKey(Date.now() - 86400000) ? 'btn-primary' : 'btn-ghost'} py-1 px-2.5 text-xs rounded-lg" onclick="window.setSettingsResetDate('${S.fmtDateKey(Date.now() - 86400000)}')">
-                Yesterday
-              </button>
-              <span class="pill pill-info text-xs font-semibold">
-                ${S.state.orders.filter(o => S.fmtDateKey(o.createdAt || o.created_at || Date.now()) === settingsResetDate).length} order(s) on ${settingsResetDate === S.fmtDateKey(Date.now()) ? 'Today' : settingsResetDate}
-              </span>
+              <button type="button" class="btn ${settingsResetDate === S.fmtDateKey(Date.now()) ? 'btn-primary' : 'btn-ghost'} py-1 px-2.5 text-xs rounded-lg" onclick="window.setSettingsResetDate('${S.fmtDateKey(Date.now())}')">Today</button>
+              <button type="button" class="btn ${settingsResetDate === S.fmtDateKey(Date.now() - 86400000) ? 'btn-primary' : 'btn-ghost'} py-1 px-2.5 text-xs rounded-lg" onclick="window.setSettingsResetDate('${S.fmtDateKey(Date.now() - 86400000)}')">Yesterday</button>
+              <span class="pill pill-info text-xs font-semibold">${S.state.orders.filter(o => S.fmtDateKey(o.createdAt || o.created_at || Date.now()) === settingsResetDate).length} order(s)</span>
             </div>
-
             <button type="button" class="btn bg-rose-600 hover:bg-rose-700 text-white font-semibold py-2 px-4 text-xs shadow-md shadow-rose-600/20 flex items-center gap-1.5" onclick="window.promptResetDayOrders('${settingsResetDate}')">
               ${icon('trash-2', 'w-4 h-4')} Reset Orders For This Day
             </button>
@@ -599,7 +545,6 @@
     `;
       }
 
-      /* ==================== GLOBAL HANDLERS ==================== */
       window.setMenuCat = (cat) => { menuFilter = cat; render(); };
       window.setMenuSearch = (val) => { menuSearch = val; render(); };
       window.setOrdersFilter = (f) => { ordersFilter = f; render(); };
@@ -608,35 +553,31 @@
       window.setDashCustomDate = (val) => { dashDayFilter = 'CUSTOM'; dashCustomDate = val; render(); };
       window.setOrdersDayFilter = (f) => { ordersDayFilter = f; render(); };
       window.setOrdersCustomDate = (val) => { ordersDayFilter = 'CUSTOM'; ordersCustomDate = val; render(); };
+      window.setSettingsResetDate = (val) => { settingsResetDate = val || S.fmtDateKey(Date.now()); render(); };
 
       window.toggleDishAvailable = async (id) => {
         const dish = S.state.menu.find(m => m.id === id);
         if (!dish) return;
         dish.available = !dish.available;
         await S.Data.saveMenuItem(dish);
-        toast(dish.available ? `✅ ${dish.name} marked Available` : `⚠️ ${dish.name} marked 86 / Sold Out`, 2500, dish.available ? 'success' : 'alert');
+        toast(dish.available ? `${dish.name} marked Available` : `${dish.name} marked 86`, 2500, dish.available ? 'success' : 'alert');
         render();
       };
 
       window.deleteDish = (id) => {
         const dish = S.state.menu.find(m => m.id === id);
         const dishName = dish ? dish.name : 'this menu dish';
-
         S.Modal.open(`
       <div class="p-6 max-w-sm mx-auto text-center">
         <div class="w-14 h-14 rounded-2xl bg-rose-500/15 text-rose-500 border border-rose-500/30 mx-auto flex items-center justify-center mb-4">
-          ${icon('trash-2', 'w-7 h-7 text-rose-500')}
+          ${icon('trash-2', 'w-7 h-7')}
         </div>
-        <h3 class="font-serif font-bold text-xl text-ink">Remove Dish from Menu?</h3>
-        <p class="text-xs text-muted mt-2 leading-relaxed">
-          Are you sure you want to remove <b class="text-ink font-semibold">${esc(dishName)}</b>? This will delete the dish from the restaurant catalog.
-        </p>
+        <h3 class="font-serif font-bold text-xl">Remove Dish?</h3>
+        <p class="text-xs text-muted mt-2 leading-relaxed">Remove <b>${esc(dishName)}</b> from the catalog?</p>
         <div class="flex gap-2.5 mt-6">
-          <button type="button" class="btn btn-ghost flex-1 justify-center py-2 text-xs" onclick="Savor.Modal.close()">
-            Cancel
-          </button>
-          <button type="button" class="btn bg-rose-600 hover:bg-rose-700 text-white font-semibold flex-1 justify-center py-2 text-xs shadow-lg shadow-rose-600/20" onclick="window.confirmDeleteDish('${id}')">
-            ${icon('trash-2', 'w-3.5 h-3.5')} Yes, Remove
+          <button type="button" class="btn btn-ghost flex-1 justify-center py-2 text-xs" onclick="Savor.Modal.close()">Cancel</button>
+          <button type="button" class="btn bg-rose-600 hover:bg-rose-700 text-white font-semibold flex-1 justify-center py-2 text-xs" onclick="window.confirmDeleteDish('${id}')">
+            ${icon('trash-2', 'w-3.5 h-3.5')} Remove
           </button>
         </div>
       </div>
@@ -646,14 +587,14 @@
       window.confirmDeleteDish = async (id) => {
         await S.Data.deleteMenuItem(id);
         S.Modal.close();
-        toast('Menu dish removed successfully.', 2500, 'info');
+        toast('Dish removed.', 2500, 'info');
         render();
       };
 
       window.openDishModal = (id = null) => {
         const item = id ? S.state.menu.find(m => m.id === id) : null;
         const isEdit = !!item;
-        activeImageUpload = item?.image || '';
+        let uploadImg = item?.image || '';
 
         S.Modal.open(`
       <div class="p-6 max-w-lg mx-auto">
@@ -661,26 +602,24 @@
           <h3 class="font-serif font-bold text-xl">${isEdit ? 'Edit Dish' : 'Add New Dish'}</h3>
           <button class="btn btn-ghost p-1.5" onclick="Savor.Modal.close()">${icon('x', 'w-4 h-4')}</button>
         </div>
-        <form id="dish-form" class="space-y-3.5" onsubmit="window.saveDishForm(event, '${id || ''}')">
+        <form onsubmit="window.saveDishForm(event, '${id || ''}')" class="space-y-3.5">
           <div>
-            <label class="block text-xs font-bold text-muted mb-1.5">Dish Photo / Picture</label>
+            <label class="block text-xs font-bold text-muted mb-1.5">Dish Photo</label>
             <div class="flex items-center gap-4 p-3 bg-surface-2 rounded-xl border border-border">
               <div id="dish-img-preview" class="w-20 h-20 rounded-xl bg-surface-3 overflow-hidden flex items-center justify-center text-3xl flex-shrink-0 border border-border">
-                ${activeImageUpload ? `<img src="${esc(activeImageUpload)}" class="w-full h-full object-cover">` : icon('utensils', 'w-8 h-8 text-muted/60')}
+                ${uploadImg ? `<img src="${esc(uploadImg)}" class="w-full h-full object-cover">` : icon('utensils', 'w-8 h-8 text-muted/60')}
               </div>
               <div class="flex-1 space-y-2">
                 <div class="flex items-center gap-2">
                   <label class="btn btn-primary py-1.5 px-3 text-xs cursor-pointer">
-                    ${icon('camera', 'w-3.5 h-3.5')} Upload Picture
-                    <input type="file" accept="image/*" class="hidden" onchange="window.handleImageUpload(event)">
+                    ${icon('camera', 'w-3.5 h-3.5')} Upload
+                    <input type="file" accept="image/*" class="hidden" onchange="window.handleDishImage(event)">
                   </label>
-                  ${activeImageUpload ? `<button type="button" class="btn btn-ghost py-1.5 px-2.5 text-xs text-rose-400" onclick="window.clearDishImage()">Remove</button>` : ''}
                 </div>
-                <input type="text" id="dish-img-url" class="input py-1 text-xs" placeholder="Or paste image URL (https://...)" value="${esc(activeImageUpload)}" oninput="window.setDishImageUrl(this.value)">
+                <input type="text" id="dish-img-url" class="input py-1 text-xs" placeholder="Or image URL" value="${esc(uploadImg)}" oninput="window.setDishImageUrl(this.value)">
               </div>
             </div>
           </div>
-
           <div>
             <label class="block text-xs font-bold text-muted mb-1">Dish Name *</label>
             <input type="text" id="dish-name" required class="input text-xs" value="${esc(item?.name || '')}" placeholder="e.g. Crispy Calamari">
@@ -689,91 +628,71 @@
             <div>
               <label class="block text-xs font-bold text-muted mb-1">Category *</label>
               <select id="dish-category" class="input text-xs">
-                ${['Appetizer', 'Main Dish', 'Dessert', 'Drinks'].map(c => `
-                  <option value="${c}" ${item?.category === c ? 'selected' : ''}>${c}</option>
-                `).join('')}
+                ${['Appetizer', 'Main Dish', 'Dessert', 'Drinks'].map(c => `<option value="${c}" ${item?.category === c ? 'selected' : ''}>${c}</option>`).join('')}
               </select>
             </div>
             <div>
-              <label class="block text-xs font-bold text-muted mb-1">Selling Price (₱) *</label>
+              <label class="block text-xs font-bold text-muted mb-1">Price (₱) *</label>
               <input type="number" id="dish-price" step="0.01" min="0" required class="input text-xs" value="${item?.price || ''}" placeholder="280">
             </div>
           </div>
           <div>
             <label class="block text-xs font-bold text-muted mb-1">Description</label>
-            <textarea id="dish-desc" rows="2" class="input text-xs" placeholder="Short appetizing description...">${esc(item?.description || '')}</textarea>
+            <textarea id="dish-desc" rows="2" class="input text-xs">${esc(item?.description || '')}</textarea>
           </div>
           <div>
             <label class="block text-xs font-bold text-muted mb-1">Ingredients (comma separated)</label>
-            <input type="text" id="dish-ingr" class="input text-xs" value="${esc(item?.ingredients || '')}" placeholder="Garlic, onion, pepper, salt">
+            <input type="text" id="dish-ingr" class="input text-xs" value="${esc(item?.ingredients || '')}">
           </div>
           <div class="flex items-center gap-2 pt-1">
             <input type="checkbox" id="dish-available" ${item?.available !== false ? 'checked' : ''} class="w-4 h-4 rounded text-amber-500">
-            <label for="dish-available" class="text-xs font-bold">Currently in stock &amp; available to order</label>
+            <label for="dish-available" class="text-xs font-bold">In stock &amp; available</label>
           </div>
           <div class="flex gap-2 pt-3">
-            <button type="submit" class="btn btn-primary flex-1 justify-center">${icon('check', 'w-4 h-4')} Save Dish</button>
+            <button type="submit" class="btn btn-primary flex-1 justify-center">${icon('check', 'w-4 h-4')} Save</button>
             <button type="button" class="btn btn-ghost" onclick="Savor.Modal.close()">Cancel</button>
           </div>
         </form>
       </div>
     `);
-      };
 
-      window.handleImageUpload = async (e) => {
-        const file = e.target.files && e.target.files[0];
-        if (!file) return;
-        try {
-          toast('Processing photo...', 1500, 'info');
-          const dataUrl = await S.processImageFile(file);
-          activeImageUpload = dataUrl;
-          const preview = document.getElementById('dish-img-preview');
-          const urlInput = document.getElementById('dish-img-url');
-          if (preview) preview.innerHTML = `<img src="${dataUrl}" class="w-full h-full object-cover">`;
-          if (urlInput) urlInput.value = dataUrl;
-          toast('Photo ready!', 2000, 'success');
-        } catch (err) {
-          toast('Failed to process image: ' + err.message, 3000, 'alert');
-        }
-      };
-
-      window.setDishImageUrl = (val) => {
-        activeImageUpload = val.trim();
-        const preview = document.getElementById('dish-img-preview');
-        if (preview) {
-          if (activeImageUpload) preview.innerHTML = `<img src="${esc(activeImageUpload)}" class="w-full h-full object-cover" onerror="this.src='';">`;
-          else preview.innerHTML = icon('utensils', 'w-8 h-8 text-muted/60');
-        }
-      };
-
-      window.clearDishImage = () => {
-        activeImageUpload = '';
-        const preview = document.getElementById('dish-img-preview');
-        const urlInput = document.getElementById('dish-img-url');
-        if (preview) preview.innerHTML = icon('utensils', 'w-8 h-8 text-muted/60');
-        if (urlInput) urlInput.value = '';
-      };
-
-      window.saveDishForm = async (e, id) => {
-        e.preventDefault();
-        const name = document.getElementById('dish-name').value.trim();
-        const category = document.getElementById('dish-category').value;
-        const price = parseFloat(document.getElementById('dish-price').value) || 0;
-        const description = document.getElementById('dish-desc').value.trim();
-        const ingredients = document.getElementById('dish-ingr').value.trim();
-        const available = document.getElementById('dish-available').checked;
-        const image = activeImageUpload || document.getElementById('dish-img-url')?.value.trim() || '';
-
-        const dish = {
-          id: id || S.uid('dish'),
-          name, category, emoji: '', price, cost_price: 0, description, ingredients, available, image
+        window.handleDishImage = async (e) => {
+          const file = e.target.files && e.target.files[0];
+          if (!file) return;
+          try {
+            const dataUrl = await S.processImageFile(file);
+            uploadImg = dataUrl;
+            const preview = document.getElementById('dish-img-preview');
+            const urlInput = document.getElementById('dish-img-url');
+            if (preview) preview.innerHTML = `<img src="${dataUrl}" class="w-full h-full object-cover">`;
+            if (urlInput) urlInput.value = dataUrl;
+            toast('Photo ready', 1500, 'success');
+          } catch (err) { toast('Image failed: ' + err.message, 3000, 'alert'); }
         };
-
-        await S.Data.saveMenuItem(dish);
-        S.Modal.close();
-        toast(`Dish "${name}" saved!`, 3000, 'success');
-        menuFilter = 'All';
-        render();
+        window.setDishImageUrl = (val) => {
+          uploadImg = val.trim();
+          const preview = document.getElementById('dish-img-preview');
+          if (preview) {
+            if (uploadImg) preview.innerHTML = `<img src="${esc(uploadImg)}" class="w-full h-full object-cover">`;
+            else preview.innerHTML = icon('utensils', 'w-8 h-8 text-muted/60');
+          }
+        };
+        window.saveDishForm = async (e, id) => {
+          e.preventDefault();
+          const name = document.getElementById('dish-name').value.trim();
+          const category = document.getElementById('dish-category').value;
+          const price = parseFloat(document.getElementById('dish-price').value) || 0;
+          const description = document.getElementById('dish-desc').value.trim();
+          const ingredients = document.getElementById('dish-ingr').value.trim();
+          const available = document.getElementById('dish-available').checked;
+          const image = uploadImg || document.getElementById('dish-img-url')?.value.trim() || '';
+          const dish = { id: id || S.uid('dish'), name, category, price, description, ingredients, available, image, emoji: '' };
+          await S.Data.saveMenuItem(dish);
+          S.Modal.close();
+          toast(`Saved "${name}"`, 3000, 'success');
+          menuFilter = 'All';
+          render();
+        };
       };
 
       window.openStaffModal = (id = null) => {
@@ -783,41 +702,32 @@
         S.Modal.open(`
       <div class="p-6 max-w-sm mx-auto">
         <div class="flex justify-between items-center mb-4">
-          <h3 class="font-serif font-bold text-xl">${isAdminAcc ? 'Change Admin Master PIN' : (acc ? 'Edit Staff Account' : 'Add Staff Account')}</h3>
+          <h3 class="font-serif font-bold text-xl">${isAdminAcc ? 'Change Admin PIN' : (acc ? 'Edit Staff' : 'Add Staff')}</h3>
           <button class="btn btn-ghost p-1.5" onclick="Savor.Modal.close()">${icon('x', 'w-4 h-4')}</button>
         </div>
         <form onsubmit="window.saveStaffForm(event, '${id || ''}')" class="space-y-4">
-          ${isAdminAcc ? `
-            <div class="p-3 bg-surface-2 rounded-xl border border-border text-xs text-muted mb-2">
-              <strong class="text-ink block mb-0.5">Admin / Owner Master Account</strong>
-              Admin uses 4-digit PIN only (no username required).
-            </div>
-          ` : `
+          ${!isAdminAcc ? `
             <div>
-              <label class="block text-xs font-bold text-muted mb-1">Staff Username (Letters Only) *</label>
+              <label class="block text-xs font-bold text-muted mb-1">Username (letters only) *</label>
               <div class="relative">
                 <span class="absolute left-3 top-3 text-xs text-muted font-mono">@</span>
-                <input type="text" id="staff-user" required class="input text-xs pl-7 font-mono" value="${esc(acc?.username || '')}" placeholder="e.g. maria" oninput="this.value = S.sanitizeUsername(this.value)">
+                <input type="text" id="staff-user" required class="input text-xs pl-7 font-mono" value="${esc(acc?.username || '')}" oninput="this.value = S.sanitizeUsername(this.value)">
               </div>
-              <small class="text-[11px] text-muted block mt-1">Strictly letters only (e.g. maria, john, alex). No numbers.</small>
             </div>
-          `}
-
+          ` : ''}
           <div>
-            <label class="block text-xs font-bold text-muted mb-1">${isAdminAcc ? '4-Digit Master PIN *' : '4-Digit Station PIN *'}</label>
+            <label class="block text-xs font-bold text-muted mb-1">${isAdminAcc ? 'Master' : 'Station'} PIN *</label>
             <input type="text" id="staff-pin" required maxlength="4" pattern="[0-9]{4}" class="input font-mono text-center text-xl tracking-[0.4em]" value="${esc(acc?.pin || (isAdminAcc ? '1212' : ''))}" placeholder="••••" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
-            <small class="text-[11px] text-muted block mt-1">${isAdminAcc ? 'Master PIN used to access Admin CMS (default: 1212).' : '4 numbers used for station terminal login.'}</small>
           </div>
-
           ${!isAdminAcc ? `
             <div class="grid grid-cols-2 gap-2">
               <div>
-                <label class="block text-xs font-bold text-muted mb-1">Assigned Role</label>
+                <label class="block text-xs font-bold text-muted mb-1">Role</label>
                 <select id="staff-role" class="input text-xs">
-                  <option value="Cashier" ${acc?.role === 'Cashier' ? 'selected' : ''}>Cashier (Counter POS)</option>
-                  <option value="Waiter" ${acc?.role === 'Waiter' ? 'selected' : ''}>Waiter (Floor Waiter)</option>
-                  <option value="Kitchen" ${acc?.role === 'Kitchen' ? 'selected' : ''}>Kitchen (KDS Pass)</option>
-                  <option value="Semi Admin" ${acc?.role === 'Semi Admin' ? 'selected' : ''}>Semi Admin (Floor Manager)</option>
+                  <option value="Cashier" ${acc?.role === 'Cashier' ? 'selected' : ''}>Cashier</option>
+                  <option value="Waiter" ${acc?.role === 'Waiter' ? 'selected' : ''}>Waiter</option>
+                  <option value="Kitchen" ${acc?.role === 'Kitchen' ? 'selected' : ''}>Kitchen</option>
+                  <option value="Semi Admin" ${acc?.role === 'Semi Admin' ? 'selected' : ''}>Semi Admin</option>
                 </select>
               </div>
               <div>
@@ -829,9 +739,8 @@
               </div>
             </div>
           ` : ''}
-
           <div class="flex gap-2 pt-2">
-            <button type="submit" class="btn btn-primary flex-1 justify-center">${icon('check', 'w-4 h-4')} ${isAdminAcc ? 'Save Admin PIN' : 'Save Staff'}</button>
+            <button type="submit" class="btn btn-primary flex-1 justify-center">${icon('check', 'w-4 h-4')} Save</button>
             <button type="button" class="btn btn-ghost" onclick="Savor.Modal.close()">Cancel</button>
           </div>
         </form>
@@ -842,69 +751,46 @@
       window.saveStaffForm = async (e, id) => {
         e.preventDefault();
         const pin = document.getElementById('staff-pin').value.trim();
-        if (pin.length !== 4) {
-          toast('PIN must be exactly 4 numbers!', 3000, 'alert');
-          return;
-        }
-
+        if (pin.length !== 4) { toast('PIN must be 4 digits!', 3000, 'alert'); return; }
         const acc = id ? S.state.accounts.find(a => a.id === id) : null;
         const isAdminAcc = acc && (acc.role === 'Admin' || acc.id === 'acc-admin' || !acc.username || acc.username === 'admin');
-
         if (isAdminAcc) {
-          acc.pin = pin;
-          acc.role = 'Admin';
-          acc.status = 'Active';
-          delete acc.username;
-          delete acc.password;
+          acc.pin = pin; acc.role = 'Admin'; acc.status = 'Active';
+          delete acc.username; delete acc.password;
           await S.Data.saveAccount(acc);
           S.Modal.close();
-          toast(`Admin Master PIN updated to ${pin}.`, 3000, 'success');
+          toast(`Admin PIN updated to ${pin}`, 3000, 'success');
           render();
           return;
         }
-
         const username = S.sanitizeUsername(document.getElementById('staff-user').value);
         const role = document.getElementById('staff-role').value;
         const status = document.getElementById('staff-status').value;
-        const name = username ? (username.charAt(0).toUpperCase() + username.slice(1)) : 'Staff';
-
-        if (!username) {
-          toast('Username must contain letters or numbers!', 3000, 'alert');
-          return;
-        }
-
-        const existingSameUser = S.state.accounts.find(a => a.id !== (id || '') && a.username && a.username.toLowerCase() === username.toLowerCase());
-        if (existingSameUser) {
-          toast(`An account with username @${username} already exists! Please choose another username.`, 3500, 'alert');
-          return;
-        }
-
+        const name = username.charAt(0).toUpperCase() + username.slice(1);
+        if (!username) { toast('Username required', 3000, 'alert'); return; }
+        const existing = S.state.accounts.find(a => a.id !== (id || '') && a.username && a.username.toLowerCase() === username.toLowerCase());
+        if (existing) { toast(`@${username} already exists`, 3500, 'alert'); return; }
         const account = { id: id || S.uid('acc'), name, username, pin, role, status };
         await S.Data.saveAccount(account);
         S.Modal.close();
-        toast(`Staff @${username} (${role} · PIN: ${pin}) saved!`, 3000, 'success');
+        toast(`@${username} (${role}) saved`, 3000, 'success');
         render();
       };
 
       window.deleteStaff = (id) => {
         const acc = S.state.accounts.find(a => a.id === id);
         const uname = acc ? acc.username : 'this staff';
-
         S.Modal.open(`
       <div class="p-6 max-w-sm mx-auto text-center">
         <div class="w-12 h-12 rounded-2xl bg-rose-500/15 text-rose-500 border border-rose-500/30 mx-auto flex items-center justify-center mb-3">
           ${icon('user-minus', 'w-6 h-6')}
         </div>
-        <h3 class="font-serif font-bold text-lg text-ink">Delete Staff Account?</h3>
-        <p class="text-xs text-muted mt-2 leading-relaxed">
-          Are you sure you want to remove <b class="text-ink">@${esc(uname)}</b>? They will no longer be able to log in to POS stations.
-        </p>
+        <h3 class="font-serif font-bold text-lg">Delete Staff?</h3>
+        <p class="text-xs text-muted mt-2">Remove <b>@${esc(uname)}</b>?</p>
         <div class="flex gap-2.5 mt-5">
-          <button type="button" class="btn btn-ghost flex-1 justify-center py-2 text-xs" onclick="Savor.Modal.close()">
-            Cancel
-          </button>
-          <button type="button" class="btn bg-rose-600 hover:bg-rose-700 text-white font-semibold flex-1 justify-center py-2 text-xs shadow-lg shadow-rose-600/20" onclick="window.confirmDeleteStaff('${id}')">
-            ${icon('trash-2', 'w-3.5 h-3.5')} Delete Staff
+          <button type="button" class="btn btn-ghost flex-1 justify-center py-2 text-xs" onclick="Savor.Modal.close()">Cancel</button>
+          <button type="button" class="btn bg-rose-600 hover:bg-rose-700 text-white font-semibold flex-1 justify-center py-2 text-xs" onclick="window.confirmDeleteStaff('${id}')">
+            ${icon('trash-2', 'w-3.5 h-3.5')} Delete
           </button>
         </div>
       </div>
@@ -914,71 +800,7 @@
       window.confirmDeleteStaff = async (id) => {
         await S.Data.deleteAccount(id);
         S.Modal.close();
-        toast('Staff account deleted.', 2000, 'info');
-        render();
-      };
-
-      window.inspectOrder = (id) => {
-        const o = S.state.orders.find(ord => ord.id === id);
-        if (!o) return;
-
-        S.Modal.open(`
-      <div class="p-6 max-w-lg mx-auto">
-        <div class="flex justify-between items-start mb-4">
-          <div>
-            <h3 class="font-serif font-bold text-2xl font-mono">${esc(o.code)}</h3>
-            <p class="text-xs text-muted mt-1">${tableTag(o)} · Taken by ${esc(o.staff || 'Staff')}</p>
-          </div>
-          <div class="flex items-center gap-2">
-            ${statusPill(o.status)}
-            ${paymentPill(o)}
-          </div>
-        </div>
-
-        <div class="divide-y divide-border border-y border-border my-4 py-2">
-          ${(o.items || []).map(item => `
-            <div class="py-2.5 flex justify-between items-center text-sm">
-              <div>
-                <strong>${item.qty}× ${esc(item.name)}</strong>
-                ${item.note ? `<small class="block text-xs text-amber-500 font-semibold italic">Note: ${esc(item.note)}</small>` : ''}
-              </div>
-              <div class="text-right">
-                <span class="font-bold">${peso((item.price || 0) * (item.qty || 1))}</span>
-                <small class="block text-[11px] ${item.ready ? 'text-emerald-500' : 'text-muted'}">${item.served ? 'Served' : item.ready ? 'Ready at pass' : 'Cooking'}</small>
-              </div>
-            </div>
-          `).join('')}
-        </div>
-
-        <div class="space-y-1.5 text-sm mb-6">
-          <div class="flex justify-between text-muted"><span>Subtotal:</span><span>${peso(orderTotal(o))}</span></div>
-          ${o.discount ? `<div class="flex justify-between text-emerald-500 font-semibold"><span>Discount:</span><span>-${peso(o.discount)}</span></div>` : ''}
-          <div class="flex justify-between text-lg font-bold pt-2 border-t border-border"><span>Total Due:</span><span>${peso(orderTotal(o))}</span></div>
-        </div>
-
-        <div class="flex gap-2">
-          ${o.payment !== 'PAID' ? `
-            <button class="btn btn-primary flex-1 justify-center" onclick="window.quickPay('${o.id}')">
-              ${icon('check-check', 'w-4 h-4')} Settle &amp; Mark Paid
-            </button>
-          ` : `
-            <span class="pill pill-paid py-2 px-4 justify-center flex-1">Settled at ${fmtDateTime(o.paidAt)}</span>
-          `}
-          <button class="btn btn-ghost" onclick="Savor.Modal.close()">Close</button>
-        </div>
-      </div>
-    `);
-      };
-
-      window.quickPay = async (id) => {
-        await S.Data.markPaid(id);
-        S.Modal.close();
-        toast('Order payment marked as settled!', 3000, 'success');
-        render();
-      };
-
-      window.setSettingsResetDate = (val) => {
-        settingsResetDate = val || S.fmtDateKey(Date.now());
+        toast('Staff deleted.', 2000, 'info');
         render();
       };
 
@@ -988,43 +810,24 @@
         const isTargetToday = (targetDateKey === S.fmtDateKey(Date.now()));
         const readableDate = isTargetToday ? 'Today (' + targetDateKey + ')' : targetDateKey;
         const totalDaySales = dayOrders.reduce((sum, o) => sum + S.orderTotal(o), 0);
-
         S.Modal.open(`
       <div class="p-6 max-w-md mx-auto text-center">
         <div class="w-14 h-14 rounded-2xl bg-rose-500/15 text-rose-500 border border-rose-500/30 mx-auto flex items-center justify-center mb-4">
           ${icon('alert-triangle', 'w-7 h-7')}
         </div>
-        <h3 class="font-serif font-bold text-2xl text-ink">Reset Orders for ${esc(readableDate)}?</h3>
+        <h3 class="font-serif font-bold text-2xl">Reset Orders for ${esc(readableDate)}?</h3>
         <p class="text-xs text-muted mt-2 leading-relaxed">
-          You are about to permanently clear all <strong class="text-rose-500 font-bold">${dayOrders.length} order(s) and settlement history</strong> made on <strong class="text-ink">${esc(readableDate)}</strong>.
+          Permanently clear all <strong class="text-rose-500">${dayOrders.length} order(s)</strong> on this day.
         </p>
         <div class="p-3.5 my-4 bg-surface-2 rounded-xl border border-border text-left text-xs space-y-1.5">
-          <div class="flex justify-between">
-            <span class="text-muted">Target Day:</span>
-            <strong class="font-mono text-ink">${esc(targetDateKey)}</strong>
-          </div>
-          <div class="flex justify-between">
-            <span class="text-muted">Orders to be cleared:</span>
-            <strong class="font-mono text-rose-400">${dayOrders.length} ticket(s)</strong>
-          </div>
-          <div class="flex justify-between">
-            <span class="text-muted">Total day revenue:</span>
-            <strong class="font-mono text-amber-500">${S.peso(totalDaySales)}</strong>
-          </div>
-          <div class="flex justify-between pt-1 border-t border-border/60">
-            <span class="text-muted">Menu items &amp; Staff:</span>
-            <span class="text-emerald-500 font-medium">Safe &amp; Untouched</span>
-          </div>
+          <div class="flex justify-between"><span class="text-muted">Target day:</span><strong class="font-mono">${esc(targetDateKey)}</strong></div>
+          <div class="flex justify-between"><span class="text-muted">Orders:</span><strong class="font-mono text-rose-400">${dayOrders.length}</strong></div>
+          <div class="flex justify-between"><span class="text-muted">Total sales:</span><strong class="font-mono text-amber-500">${S.peso(totalDaySales)}</strong></div>
         </div>
-        <p class="text-[11px] text-muted italic mb-5">
-          Floor tables associated with these orders will immediately return to "AVAILABLE". This action cannot be undone.
-        </p>
         <div class="flex gap-2.5">
-          <button type="button" class="btn btn-ghost flex-1 justify-center py-2 text-xs" onclick="Savor.Modal.close()">
-            Cancel
-          </button>
-          <button type="button" class="btn bg-rose-600 hover:bg-rose-700 text-white font-semibold flex-1 justify-center py-2 text-xs shadow-lg shadow-rose-600/20 flex items-center gap-1.5" onclick="window.executeResetDayOrders('${targetDateKey}')">
-            ${icon('trash-2', 'w-4 h-4')} Yes, Reset ${dayOrders.length} Order(s)
+          <button type="button" class="btn btn-ghost flex-1 justify-center py-2 text-xs" onclick="Savor.Modal.close()">Cancel</button>
+          <button type="button" class="btn bg-rose-600 hover:bg-rose-700 text-white font-semibold flex-1 justify-center py-2 text-xs" onclick="window.executeResetDayOrders('${targetDateKey}')">
+            ${icon('trash-2', 'w-4 h-4')} Reset ${dayOrders.length}
           </button>
         </div>
       </div>
@@ -1034,70 +837,29 @@
       window.executeResetDayOrders = async (targetDateKey) => {
         const res = await S.Data.deleteOrdersByDay(targetDateKey);
         S.Modal.close();
-        toast(`Reset complete: ${res.count} order(s) and history for ${targetDateKey} cleared.`, 3500, 'success');
+        toast(`Reset complete: ${res.count} order(s) cleared.`, 3500, 'success');
         render();
       };
 
       window.saveSettingsDb = () => {
         if (isConnecting) return;
         isConnecting = true;
-        
         const url = document.getElementById('set-url')?.value.trim() || '';
         const key = document.getElementById('set-key')?.value.trim() || '';
         S.CONFIG.SUPABASE_URL = S.cleanSupabaseUrl(url);
         S.CONFIG.SUPABASE_KEY = key;
         S.safeSet('savor.supabase_url', S.CONFIG.SUPABASE_URL);
         S.safeSet('savor.supabase_key', S.CONFIG.SUPABASE_KEY);
-        
-        toast('Connecting to Supabase Cloud...', 3000, 'info');
-        
+        toast('Connecting...', 3000, 'info');
         S.initSupabase().then(() => {
           isConnecting = false;
-          toast('Supabase cloud connected and live!', 3000, 'success');
+          toast('Connected!', 3000, 'success');
           render();
         }).catch(() => {
           isConnecting = false;
-          toast('Failed to connect. Check your URL and Key.', 3000, 'alert');
+          toast('Failed to connect', 3000, 'alert');
           render();
         });
-      };
-
-      window.disconnectCloud = () => {
-        S.Modal.open(`
-      <div class="p-6 max-w-sm mx-auto text-center">
-        <div class="w-12 h-12 rounded-2xl bg-amber-500/15 text-amber-500 border border-amber-500/30 mx-auto flex items-center justify-center mb-3">
-          ${icon('power', 'w-6 h-6')}
-        </div>
-        <h3 class="font-serif font-bold text-lg text-ink">Disconnect Cloud Database?</h3>
-        <p class="text-xs text-muted mt-2 leading-relaxed">
-          Switch to local offline storage on this device? Your local data will remain intact.
-        </p>
-        <div class="flex gap-2.5 mt-5">
-          <button type="button" class="btn btn-ghost flex-1 justify-center py-2 text-xs" onclick="Savor.Modal.close()">
-            Cancel
-          </button>
-          <button type="button" class="btn btn-primary flex-1 justify-center py-2 text-xs" onclick="window.confirmDisconnectCloud()">
-            Disconnect
-          </button>
-        </div>
-      </div>
-    `);
-      };
-
-      window.confirmDisconnectCloud = () => {
-        S.CONFIG.SUPABASE_URL = '';
-        S.CONFIG.SUPABASE_KEY = '';
-        S.safeSet('savor.supabase_url', '');
-        S.safeSet('savor.supabase_key', '');
-        if (S.state.supabaseClient && S.state.realtimeChannel) {
-          try { S.state.supabaseClient.removeChannel(S.state.realtimeChannel); } catch (e) { }
-        }
-        S.state.supabaseClient = null;
-        S.state.realtimeChannel = null;
-        S.setNet('local');
-        S.Modal.close();
-        toast('Switched to Local Offline Storage.', 3000, 'info');
-        render();
       };
 
       S.boot({ role: 'admin', defaultScreen: 'dashboard', render: render });

@@ -157,8 +157,8 @@
         const dayOrders = filterOrdersByDay(allOrders, ordersDayFilter, ordersCustomDate);
 
         const filtered = dayOrders.filter(o => {
-          if (ordersStatusFilter === 'ACTIVE') return o.status !== 'COMPLETED' || o.payment !== 'PAID';
-          if (ordersStatusFilter === 'COMPLETED') return o.status === 'COMPLETED' || o.payment === 'PAID';
+          if (ordersStatusFilter === 'ACTIVE') return o.status !== 'CANCELLED' && (o.status !== 'COMPLETED' || o.payment !== 'PAID');
+          if (ordersStatusFilter === 'COMPLETED') return o.status !== 'CANCELLED' && (o.status === 'COMPLETED' || o.payment === 'PAID');
           return true; // 'ALL'
         });
 

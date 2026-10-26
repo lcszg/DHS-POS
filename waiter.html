@@ -8,76 +8,82 @@
   <title>Food &amp; Beverage — Floor Waiter</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link
-    href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400..700;1,9..40,400..700&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap"
-    rel="stylesheet">
-  <!-- Tailwind must load BEFORE its config is assigned -->
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400..700;1,9..40,400..700&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap" rel="stylesheet">
   <script src="https://cdn.tailwindcss.com/3.4.17"></script>
   <script>tailwind.config = { darkMode: 'class', theme: { extend: { colors: { bg: 'var(--bg)', surface: 'var(--surface)', 'surface-2': 'var(--surface-2)', 'surface-3': 'var(--surface-3)', border: 'var(--border)', ink: 'var(--ink)', muted: 'var(--text-muted)', primary: 'var(--primary)' } } } };</script>
   <script src="https://cdn.jsdelivr.net/npm/lucide@0.577.0/dist/umd/lucide.min.js"></script>
   <script src="shared.js"></script>
 
   <style>
-    /* =====================================================================
-       WAITER TERMINAL — mobile-first layout (uses the shared design tokens)
-       ===================================================================== */
-    /* backdrop-filter on .navbar makes it the containing block for the fixed mobile tab bar,
-       which pins the tabs INSIDE the header (covering brand / sound / theme buttons) instead of the screen bottom */
-    .navbar { backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }
-
     .wt-main { max-width: 80rem; margin: 0 auto; padding: .75rem .875rem 1.25rem; width: 100%; }
     @media (min-width: 640px) { .wt-main { padding: 1rem 1.5rem 1.5rem; } }
     .wt-main.has-bar { padding-bottom: 6.5rem; }
     @media (min-width: 768px) { .wt-main.has-bar { padding-bottom: 6rem; } }
     @media (min-width: 1024px) { .wt-main.has-bar { padding-bottom: 1.5rem; } }
-
     .wt-foot { display: none; text-align: center; font-size: .75rem; color: var(--text-muted); padding: 1rem; border-top: 1px solid var(--border); }
     @media (min-width: 768px) { .wt-foot { display: block; } }
-
     .wt-mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
-
-    /* ---------- status strip ---------- */
     .wt-strip { display: flex; align-items: center; justify-content: space-between; gap: .5rem; margin-bottom: .5rem; font-size: .78rem; color: var(--text-muted); }
     .wt-strip b { color: var(--ink); }
-    .wt-alert { display: flex; align-items: center; gap: .6rem; width: 100%; min-height: 2.9rem; padding: .55rem .9rem; border-radius: 14px; text-align: left;
-      background: var(--success-soft); color: var(--success); border: 1px solid color-mix(in srgb, var(--success) 40%, transparent);
-      font-weight: 700; font-size: .9rem; animation: wtPulse 2s ease-in-out infinite; margin-bottom: .5rem; }
+    .wt-alert {
+      display: flex; align-items: center; gap: .6rem; width: 100%; min-height: 2.9rem;
+      padding: .55rem .9rem; border-radius: 14px; text-align: left;
+      background: var(--success-soft); color: var(--success);
+      border: 1px solid color-mix(in srgb, var(--success) 40%, transparent);
+      font-weight: 700; font-size: .9rem; animation: wtPulse 2s ease-in-out infinite;
+      margin-bottom: .5rem; touch-action: manipulation;
+    }
     .wt-alert .grow { flex: 1; min-width: 0; }
     @keyframes wtPulse { 0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--success) 35%, transparent); } 50% { box-shadow: 0 0 0 6px transparent; } }
-
-    /* ---------- sticky toolbar: search + categories ---------- */
-    .wt-toolbar { position: sticky; top: 3.5rem; z-index: 30; margin: 0 -.875rem .6rem; padding: .5rem .875rem .35rem;
-      background: color-mix(in srgb, var(--bg) 93%, transparent); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); }
+    .wt-toolbar {
+      position: sticky; top: 3.5rem; z-index: 30;
+      margin: 0 -.875rem .6rem; padding: .5rem .875rem .35rem;
+      background: color-mix(in srgb, var(--bg) 93%, transparent);
+      backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+    }
     @media (min-width: 640px) { .wt-toolbar { margin: 0 -1.5rem .75rem; padding: .6rem 1.5rem .4rem; } }
     .wt-search { position: relative; }
-    .wt-search input { width: 100%; height: 2.75rem; padding: 0 2.6rem 0 2.5rem; border-radius: 14px; border: 1px solid var(--border);
-      background: var(--surface); color: var(--ink); font-size: 16px; outline: none; }
+    .wt-search input {
+      width: 100%; height: 2.75rem; padding: 0 2.6rem 0 2.5rem;
+      border-radius: 14px; border: 1px solid var(--border);
+      background: var(--surface); color: var(--ink);
+      font-size: 16px; outline: none;
+      -webkit-appearance: none; appearance: none;
+    }
     .wt-search input::placeholder { color: var(--text-muted); }
     .wt-search input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-ring); }
     .wt-search .si { position: absolute; left: .85rem; top: 50%; transform: translateY(-50%); color: var(--text-muted); pointer-events: none; display: flex; }
-    .wt-search .sx { position: absolute; right: .25rem; top: 50%; transform: translateY(-50%); width: 2.25rem; height: 2.25rem; display: flex; align-items: center; justify-content: center; color: var(--text-muted); border-radius: 10px; }
+    .wt-search .sx { position: absolute; right: .25rem; top: 50%; transform: translateY(-50%); width: 2.25rem; height: 2.25rem; display: flex; align-items: center; justify-content: center; color: var(--text-muted); border-radius: 10px; touch-action: manipulation; }
     .wt-search .sx[hidden] { display: none; }
     .wt-chips { display: flex; gap: .35rem; overflow-x: auto; padding: .55rem 0 .15rem; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
     .wt-chips::-webkit-scrollbar { display: none; }
-    .wt-chip { flex: 1 1 auto; justify-content: center; display: inline-flex; align-items: center; gap: .35rem; height: 2.5rem; padding: 0 .6rem; min-width: 0; border-radius: 999px;
-      border: 1px solid var(--border); background: var(--surface); color: var(--ink-soft); font-size: .85rem; font-weight: 600; white-space: nowrap;
-      -webkit-tap-highlight-color: transparent; }
+    .wt-chip {
+      flex: 1 1 auto; justify-content: center;
+      display: inline-flex; align-items: center; gap: .35rem;
+      height: 2.5rem; padding: 0 .6rem; min-width: 0;
+      border-radius: 999px; border: 1px solid var(--border);
+      background: var(--surface); color: var(--ink-soft);
+      font-size: .85rem; font-weight: 600; white-space: nowrap;
+      -webkit-tap-highlight-color: transparent; touch-action: manipulation;
+    }
     @media (max-width: 520px) { .wt-chip { font-size: .78rem; padding: 0 .4rem; gap: 0; } .wt-chip svg, .wt-chip i { display: none; } }
     .wt-chip.on { background: var(--primary); border-color: var(--primary); color: var(--primary-text); }
-
-    /* ---------- layout ---------- */
     .wt-layout { display: block; }
     @media (min-width: 1024px) {
       .wt-layout { display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: 1.5rem; align-items: start; }
       .wt-side { align-self: stretch; }
     }
-
-    /* ---------- dish list ---------- */
     .wt-grid { display: grid; grid-template-columns: 1fr; gap: .6rem; }
     @media (min-width: 640px) { .wt-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .75rem; } }
     @media (min-width: 1700px) { .wt-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
-    .wt-dish { display: flex; align-items: center; gap: .75rem; padding: .6rem; min-width: 0; border-radius: 16px; background: var(--surface);
-      border: 1px solid var(--border); cursor: pointer; -webkit-tap-highlight-color: transparent; transition: border-color .15s, background .15s, transform .1s; }
+    .wt-dish {
+      display: flex; align-items: center; gap: .75rem;
+      padding: .6rem; min-width: 0; border-radius: 16px;
+      background: var(--surface); border: 1px solid var(--border);
+      cursor: pointer; -webkit-tap-highlight-color: transparent;
+      transition: border-color .15s, background .15s, transform .1s;
+      touch-action: manipulation;
+    }
     .wt-dish:active { transform: scale(.985); }
     .wt-dish.in { border-color: var(--primary); background: color-mix(in srgb, var(--primary-soft) 55%, var(--surface)); }
     .wt-dish.off { opacity: .55; cursor: not-allowed; }
@@ -90,7 +96,7 @@
     .wt-act { flex: 0 0 auto; }
     .wt-add { width: 2.75rem; height: 2.75rem; border-radius: 14px; background: var(--primary); color: var(--primary-text); display: flex; align-items: center; justify-content: center; }
     .wt-step { display: inline-flex; align-items: center; background: var(--surface-2); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; }
-    .wt-step button { width: 2.6rem; height: 2.6rem; display: flex; align-items: center; justify-content: center; font-size: 1.3rem; font-weight: 700; color: var(--ink); -webkit-tap-highlight-color: transparent; }
+    .wt-step button { width: 2.6rem; height: 2.6rem; display: flex; align-items: center; justify-content: center; font-size: 1.3rem; font-weight: 700; color: var(--ink); -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
     .wt-step button:active { background: var(--surface-3); }
     .wt-step b { min-width: 1.6rem; text-align: center; font-size: .95rem; }
     .wt-step.sm button { width: 2.3rem; height: 2.3rem; }
@@ -98,34 +104,44 @@
     .wt-empty { text-align: center; padding: 2.5rem 1rem; color: var(--text-muted); border: 1px dashed var(--border-strong); border-radius: 18px; grid-column: 1 / -1; }
     .wt-empty h4 { color: var(--ink); font-weight: 700; margin: .5rem 0 .15rem; }
     .bg-alert-soft { background: var(--alert-soft); }
-
-    /* ---------- floating cart bar (phones/tablets) ---------- */
     .wt-bar { position: fixed; left: .75rem; right: .75rem; bottom: calc(4.6rem + env(safe-area-inset-bottom, 0px)); z-index: 35; display: none; }
     .wt-bar.show { display: block; }
     @media (min-width: 768px) { .wt-bar { bottom: calc(1rem + env(safe-area-inset-bottom, 0px)); max-width: 34rem; margin: 0 auto; } }
     @media (min-width: 1024px) { .wt-bar, .wt-bar.show { display: none; } }
-    .wt-bar button { width: 100%; min-height: 3.4rem; display: flex; align-items: center; justify-content: space-between; gap: .75rem; padding: .5rem .85rem .5rem .6rem;
-      border-radius: 18px; background: var(--primary); color: var(--primary-text); font-weight: 700;
-      box-shadow: 0 10px 28px color-mix(in srgb, var(--primary) 45%, transparent); -webkit-tap-highlight-color: transparent; }
+    .wt-bar button {
+      width: 100%; min-height: 3.4rem; display: flex; align-items: center; justify-content: space-between;
+      gap: .75rem; padding: .5rem .85rem .5rem .6rem; border-radius: 18px;
+      background: var(--primary); color: var(--primary-text); font-weight: 700;
+      box-shadow: 0 10px 28px color-mix(in srgb, var(--primary) 45%, transparent);
+      -webkit-tap-highlight-color: transparent; touch-action: manipulation;
+    }
     .wt-bar .l { display: flex; align-items: center; gap: .65rem; min-width: 0; text-align: left; }
     .wt-bar .cnt { width: 2.2rem; height: 2.2rem; border-radius: 12px; background: var(--primary-text); color: var(--primary); display: flex; align-items: center; justify-content: center; font-size: .95rem; flex: 0 0 auto; }
     .wt-bar .t1 { font-size: .95rem; line-height: 1.1; }
     .wt-bar .t2 { font-size: .72rem; font-weight: 600; opacity: .85; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .wt-bar .r { display: flex; align-items: center; gap: .35rem; font-size: 1rem; flex: 0 0 auto; }
-
-    /* ---------- ticket: bottom sheet on phones, sticky panel on desktop ---------- */
     .wt-backdrop { position: fixed; inset: 0; z-index: 54; background: rgba(20, 17, 12, .55); opacity: 0; pointer-events: none; transition: opacity .25s; }
     .wt-backdrop.show { opacity: 1; pointer-events: auto; }
-    .wt-panel { position: fixed; left: 0; right: 0; bottom: 0; z-index: 55; max-height: 92vh; max-height: 92dvh; display: flex; flex-direction: column;
-      background: var(--surface); border: 1px solid var(--border); border-bottom: 0; border-radius: 22px 22px 0 0; box-shadow: var(--shadow-lg);
-      transform: translateY(105%); visibility: hidden; transition: transform .28s cubic-bezier(.4, 0, .2, 1), visibility 0s .28s; }
+    .wt-panel {
+      position: fixed; left: 0; right: 0; bottom: 0; z-index: 55;
+      max-height: 92vh; max-height: 92dvh; display: flex; flex-direction: column;
+      background: var(--surface); border: 1px solid var(--border);
+      border-bottom: 0; border-radius: 22px 22px 0 0;
+      box-shadow: var(--shadow-lg);
+      transform: translateY(105%); visibility: hidden;
+      transition: transform .28s cubic-bezier(.4, 0, .2, 1), visibility 0s .28s;
+    }
     .wt-panel.open { transform: none; visibility: visible; transition: transform .28s cubic-bezier(.4, 0, .2, 1), visibility 0s; }
     @media (min-width: 768px) and (max-width: 1023px) { .wt-panel { left: 50%; right: auto; width: 36rem; max-width: 100%; margin-left: -18rem; } }
     @media (max-width: 767px) { .wt-panel { margin-left: 0; } }
     @media (min-width: 1024px) {
       .wt-backdrop { display: none; }
-      .wt-panel { position: sticky; top: 4.5rem; left: auto; right: auto; width: auto; margin: 0; z-index: auto; max-height: calc(100vh - 5.5rem); max-height: calc(100dvh - 5.5rem);
-        transform: none; visibility: visible; border-bottom: 1px solid var(--border); border-radius: 20px; box-shadow: var(--shadow-md); }
+      .wt-panel {
+        position: sticky; top: 4.5rem; left: auto; right: auto; width: auto;
+        margin: 0; z-index: auto; max-height: calc(100vh - 5.5rem); max-height: calc(100dvh - 5.5rem);
+        transform: none; visibility: visible; border-bottom: 1px solid var(--border);
+        border-radius: 20px; box-shadow: var(--shadow-md);
+      }
       .wt-grab, .wt-close { display: none !important; }
     }
     .wt-inner { display: flex; flex-direction: column; min-height: 0; flex: 1; }
@@ -135,7 +151,7 @@
     .wt-ph-row { display: flex; align-items: center; gap: .6rem; }
     .wt-ph h3 { font-family: 'Fraunces', Georgia, serif; font-weight: 700; font-size: 1.15rem; flex: 1; }
     .wt-count { font-size: .75rem; font-weight: 700; padding: .25rem .6rem; border-radius: 999px; background: var(--info-soft); color: var(--info); }
-    .wt-iconbtn { width: 2.5rem; height: 2.5rem; border-radius: 12px; display: flex; align-items: center; justify-content: center; color: var(--text-muted); -webkit-tap-highlight-color: transparent; }
+    .wt-iconbtn { width: 2.5rem; height: 2.5rem; border-radius: 12px; display: flex; align-items: center; justify-content: center; color: var(--text-muted); -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
     .wt-iconbtn:active { background: var(--surface-2); }
     .wt-iconbtn.danger:active { color: var(--alert); }
     .wt-pb { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; padding: .9rem 1rem; }
@@ -143,12 +159,12 @@
     @media (min-width: 1024px) { .wt-pf { padding-bottom: .9rem; border-radius: 0 0 20px 20px; } }
     .wt-label { font-size: .7rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--text-muted); margin-bottom: .35rem; display: flex; align-items: center; gap: .35rem; }
     .wt-label em { font-style: normal; text-transform: none; letter-spacing: 0; font-weight: 500; }
-    .wt-field { width: 100%; height: 2.9rem; padding: 0 .85rem; border-radius: 12px; border: 1px solid var(--border); background: var(--surface-2); color: var(--ink); font-size: 16px; outline: none; }
+    .wt-field { width: 100%; height: 2.9rem; padding: 0 .85rem; border-radius: 12px; border: 1px solid var(--border); background: var(--surface-2); color: var(--ink); font-size: 16px; outline: none; -webkit-appearance: none; appearance: none; }
     .wt-field::placeholder { color: var(--text-muted); opacity: .8; }
     .wt-field:focus { border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-ring); background: var(--surface); }
     .wt-tchips { display: flex; gap: .4rem; overflow-x: auto; padding: .55rem 0 .1rem; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
     .wt-tchips::-webkit-scrollbar { display: none; }
-    .wt-tchip { flex: 0 0 auto; height: 2.3rem; padding: 0 .8rem; border-radius: 10px; border: 1px solid var(--border); background: var(--surface-2); font-size: .8rem; font-weight: 600; color: var(--ink-soft); white-space: nowrap; -webkit-tap-highlight-color: transparent; }
+    .wt-tchip { flex: 0 0 auto; height: 2.3rem; padding: 0 .8rem; border-radius: 10px; border: 1px solid var(--border); background: var(--surface-2); font-size: .8rem; font-weight: 600; color: var(--ink-soft); white-space: nowrap; -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
     .wt-tchip.on { background: var(--primary); border-color: var(--primary); color: var(--primary-text); }
     .wt-sec { margin-bottom: 1rem; }
     .wt-hint { font-size: .72rem; color: var(--warn); margin-top: .35rem; }
@@ -158,7 +174,7 @@
     .wt-line-name { font-weight: 700; font-size: .95rem; line-height: 1.25; min-width: 0; }
     .wt-line-price { font-weight: 700; color: var(--primary); white-space: nowrap; font-size: .92rem; }
     .wt-line-ctl { display: flex; align-items: center; gap: .5rem; margin-top: .5rem; }
-    .wt-note { flex: 1; min-width: 0; height: 2.3rem; padding: 0 .7rem; border-radius: 10px; border: 1px solid var(--border); background: var(--surface-2); color: var(--warn); font-size: 16px; outline: none; }
+    .wt-note { flex: 1; min-width: 0; height: 2.3rem; padding: 0 .7rem; border-radius: 10px; border: 1px solid var(--border); background: var(--surface-2); color: var(--warn); font-size: 16px; outline: none; -webkit-appearance: none; appearance: none; }
     .wt-note::placeholder { color: var(--text-muted); opacity: .8; }
     .wt-note:focus { border-color: var(--primary); background: var(--surface); }
     .wt-cart-empty { text-align: center; padding: 2rem 1rem; color: var(--text-muted); }
@@ -168,11 +184,9 @@
     .wt-total { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: .6rem; }
     .wt-total span { color: var(--text-muted); font-size: .85rem; }
     .wt-total b { font-size: 1.3rem; color: var(--ink); }
-    .wt-send { width: 100%; min-height: 3.3rem; border-radius: 16px; background: var(--primary); color: var(--primary-text); font-weight: 800; font-size: 1rem; display: flex; align-items: center; justify-content: center; gap: .55rem; -webkit-tap-highlight-color: transparent; }
+    .wt-send { width: 100%; min-height: 3.3rem; border-radius: 16px; background: var(--primary); color: var(--primary-text); font-weight: 800; font-size: 1rem; display: flex; align-items: center; justify-content: center; gap: .55rem; -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
     .wt-send:active { transform: translateY(1px); }
     .wt-send[disabled] { opacity: .45; pointer-events: none; }
-
-    /* ---------- ready-to-serve ---------- */
     .wt-rhead { margin: .25rem 0 .9rem; display: flex; align-items: flex-end; justify-content: space-between; gap: .75rem; flex-wrap: wrap; }
     .wt-rhead h2 { font-family: 'Fraunces', Georgia, serif; font-weight: 700; font-size: 1.6rem; line-height: 1.15; }
     .wt-rhead p { font-size: .8rem; color: var(--text-muted); margin-top: .15rem; }
@@ -189,13 +203,13 @@
     .wt-ritem .q { flex: 0 0 auto; min-width: 2.1rem; height: 2.1rem; border-radius: 10px; background: var(--surface-2); display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: .85rem; }
     .wt-ritem .n { flex: 1; min-width: 0; font-weight: 700; font-size: .95rem; line-height: 1.25; }
     .wt-ritem .n small { display: block; font-weight: 500; font-size: .75rem; color: var(--warn); font-style: italic; margin-top: .15rem; }
-    .wt-deliver { flex: 0 0 auto; min-height: 2.75rem; padding: 0 .9rem; border-radius: 12px; background: var(--success); color: var(--bg); font-weight: 800; font-size: .85rem; display: inline-flex; align-items: center; gap: .35rem; -webkit-tap-highlight-color: transparent; }
+    .wt-deliver { flex: 0 0 auto; min-height: 2.75rem; padding: 0 .9rem; border-radius: 12px; background: var(--success); color: var(--bg); font-weight: 800; font-size: .85rem; display: inline-flex; align-items: center; gap: .35rem; -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
     .wt-deliver:active { transform: translateY(1px); }
     .wt-rfoot { margin-top: auto; padding: .7rem 1rem .9rem; border-top: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; gap: .75rem; }
     .wt-rfoot small { color: var(--text-muted); font-size: .75rem; }
-    .wt-all { min-height: 2.75rem; padding: 0 1rem; border-radius: 12px; border: 1px solid var(--success); color: var(--success); font-weight: 800; font-size: .85rem; display: inline-flex; align-items: center; gap: .4rem; }
+    .wt-all { min-height: 2.75rem; padding: 0 1rem; border-radius: 12px; border: 1px solid var(--success); color: var(--success); font-weight: 800; font-size: .85rem; display: inline-flex; align-items: center; gap: .4rem; -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
     .wt-all:active { background: var(--success-soft); }
-    .wt-btn { min-height: 2.75rem; padding: 0 1rem; border-radius: 12px; background: var(--primary); color: var(--primary-text); font-weight: 700; font-size: .85rem; display: inline-flex; align-items: center; gap: .4rem; }
+    .wt-btn { min-height: 2.75rem; padding: 0 1rem; border-radius: 12px; background: var(--primary); color: var(--primary-text); font-weight: 700; font-size: .85rem; display: inline-flex; align-items: center; gap: .4rem; -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
     .wt-done { max-width: 26rem; margin: 2rem auto 0; text-align: center; padding: 2.5rem 1.25rem; border: 1px solid var(--border); border-radius: 20px; background: var(--surface); color: var(--text-muted); }
     .wt-done .ic { width: 3.5rem; height: 3.5rem; border-radius: 18px; background: var(--success-soft); color: var(--success); display: flex; align-items: center; justify-content: center; margin: 0 auto .75rem; }
     .wt-done h3 { color: var(--ink); font-weight: 700; font-size: 1.05rem; }
@@ -213,9 +227,8 @@
       if (!session) return;
       S.session = session;
 
-      const { esc, icon, peso, toast, setHtml, orderMetaText, itemCount, servedCount, readyUnservedCount, fmtTime } = S;
+      const { esc, icon, peso, toast, setHtml, orderMetaText, itemCount, servedCount, readyUnservedCount, readyCount, fmtTime } = S;
 
-      /* ---------- local UI state ---------- */
       let currentCategory = 'All';
       let searchQuery = '';
       let ticketTable = '';
@@ -226,6 +239,7 @@
 
       const NAV_ITEMS = [
         { key: 'menu', label: 'Take Order', icon: 'plus-circle' },
+        { key: 'tickets', label: 'My Tickets', icon: 'list' },
         { key: 'ready', label: 'Ready at Pass', icon: 'bell' }
       ];
 
@@ -240,7 +254,6 @@
 
       const isDesktop = () => window.matchMedia('(min-width: 1024px)').matches;
 
-      /* ---------- small helpers ---------- */
       function getCategories() {
         const seen = [];
         (S.state.menu || []).forEach(m => { if (m.category && !seen.includes(m.category)) seen.push(m.category); });
@@ -285,7 +298,14 @@
         if (c) customerName = c.value;
       }
 
-      /* ==================== FULL RENDER ==================== */
+      function myOpenTickets() {
+        return S.state.orders.filter(o =>
+          String(o.staff || '').trim() === (session.name || 'Waiter') &&
+          o.status !== 'COMPLETED' &&
+          o.status !== 'CANCELLED'
+        ).sort((a, b) => b.createdAt - a.createdAt);
+      }
+
       function render(preserveScroll = true) {
         const app = document.getElementById('app');
         if (!app) return;
@@ -300,11 +320,16 @@
 
         if (S.currentScreen !== 'menu') sheetOpen = false;
 
-        const readyOrders = S.state.orders.filter(o => readyUnservedCount(o) > 0)
+        const readyOrders = S.state.orders.filter(o => readyUnservedCount(o) > 0 && o.status !== 'CANCELLED')
           .sort((a, b) => readySince(a) - readySince(b));
-        NAV_ITEMS[1].badge = readyOrders.length ? readyOrders.length : '';
+        const myTickets = myOpenTickets();
 
-        const content = S.currentScreen === 'ready' ? renderReadyScreen(readyOrders) : renderMenuScreen(readyOrders);
+        NAV_ITEMS[1].badge = myTickets.length ? myTickets.length : '';
+        NAV_ITEMS[2].badge = readyOrders.length ? readyOrders.length : '';
+
+        const content = S.currentScreen === 'tickets' ? renderMyTickets(myTickets)
+          : S.currentScreen === 'ready' ? renderReadyScreen(readyOrders)
+            : renderMenuScreen(readyOrders);
 
         setHtml(app, `
           ${S.renderNav('Waiter Floor Terminal', S.currentScreen, NAV_ITEMS)}
@@ -324,9 +349,9 @@
         restoreFocus(focus);
       }
 
-      /* ==================== 1. MENU + TICKET ==================== */
       function renderMenuScreen(readyOrders) {
         const totalShiftOrders = S.state.orders.filter(o => S.isToday(o.createdAt)).length;
+        const activeTickets = myOpenTickets().length;
         const cats = getCategories();
         if (currentCategory !== 'All' && !cats.includes(currentCategory)) currentCategory = 'All';
 
@@ -341,7 +366,7 @@
 
           <div class="wt-strip">
             <span>Server · <b>${esc(session.name || 'Floor Staff')}</b></span>
-            <span>${totalShiftOrders} ticket${totalShiftOrders === 1 ? '' : 's'} today</span>
+            <span>${activeTickets} active · ${totalShiftOrders} today</span>
           </div>
 
           <div class="wt-toolbar">
@@ -408,19 +433,17 @@
                 ${is86 ? `<span class="wt-86">86 · Sold out</span>`
               : line ? `
                     <div class="wt-step" onclick="event.stopPropagation()">
-                      <button type="button" aria-label="Remove one ${esc(dish.name)}" onclick="window.updateCartQtyByDishId('${id}', -1)">−</button>
+                      <button type="button" aria-label="Remove one" onclick="window.updateCartQtyByDishId('${id}', -1)">−</button>
                       <b class="wt-mono">${line.qty}</b>
-                      <button type="button" aria-label="Add one ${esc(dish.name)}" onclick="window.updateCartQtyByDishId('${id}', 1)">+</button>
+                      <button type="button" aria-label="Add one" onclick="window.updateCartQtyByDishId('${id}', 1)">+</button>
                     </div>`
                 : `<span class="wt-add" aria-label="Add ${esc(dish.name)}" style="font-size:1.6rem;font-weight:500;line-height:1">+</span>`}
               </div>
             </div>`;
         };
-
         return list.map(card).join('');
       }
 
-      /* ---------- dish detail popup ---------- */
       let detailQty = 1;
       let detailDishId = null;
 
@@ -445,7 +468,7 @@
               <button type="button" class="btn btn-ghost p-1.5" aria-label="Close" onclick="Savor.Modal.close()">${icon('x', 'w-4 h-4')}</button>
             </div>
             <div class="w-full h-52 rounded-2xl overflow-hidden bg-surface-2 flex items-center justify-center text-7xl mb-4">
-              ${dish.image ? `<img src="${esc(dish.image)}" alt="${esc(dish.name)}" class="w-full h-full object-cover" onerror="this.parentNode.innerHTML='${dish.emoji ? `<span class=&quot;text-7xl&quot;>${esc(dish.emoji)}</span>` : `<i data-lucide=&quot;utensils&quot; class=&quot;w-14 h-14 text-muted&quot;></i>`}'">` : (dish.emoji ? `<span class="text-7xl">${dish.emoji}</span>` : icon('utensils', 'w-14 h-14 text-muted'))}
+              ${dish.image ? `<img src="${esc(dish.image)}" alt="${esc(dish.name)}" class="w-full h-full object-cover">` : (dish.emoji ? `<span class="text-7xl">${esc(dish.emoji)}</span>` : icon('utensils', 'w-14 h-14 text-muted'))}
             </div>
             <div class="flex items-start justify-between gap-3">
               <h3 class="font-serif font-bold text-2xl leading-tight">${esc(dish.name)}</h3>
@@ -489,11 +512,10 @@
         if (existing) existing.qty += detailQty; else cart.push({ item: dish, qty: detailQty, note: '' });
         try { if (navigator.vibrate) navigator.vibrate(8); } catch (e) { }
         S.Modal.close();
-        toast(`${detailQty}× ${esc(dish.name)} added to ticket`, 1800, 'success');
+        toast(`${detailQty}× ${dish.name} added to ticket`, 1800, 'success');
         refreshOrderUI();
       };
 
-      /* ---------- sign-out confirmation ---------- */
       S.logout = () => {
         S.Modal.open(`
           <div class="p-6 max-w-sm mx-auto text-center">
@@ -572,7 +594,7 @@
                       <button type="button" aria-label="More" onclick="window.updateCartQty(${idx}, 1)">+</button>
                     </div>
                     <input type="text" class="wt-note" data-fk="note-${idx}" autocomplete="off" placeholder="Kitchen note…" value="${esc(line.note || '')}" oninput="window.setCartNote(${idx}, this.value)">
-                    <button type="button" class="wt-iconbtn danger" aria-label="Remove ${esc(line.item.name)}" onclick="window.removeCartItem(${idx})">${SVG.trash}</button>
+                    <button type="button" class="wt-iconbtn danger" aria-label="Remove" onclick="window.removeCartItem(${idx})">${SVG.trash}</button>
                   </div>
                 </div>
               `).join('')}
@@ -596,7 +618,6 @@
         `;
       }
 
-      /* ---------- partial refreshes (keep typing/scroll smooth) ---------- */
       function updateMenuList() {
         const el = document.getElementById('wt-menu');
         if (el) setHtml(el, menuItemsHtml());
@@ -638,7 +659,6 @@
         updateCartBar();
       }
 
-      /* ---------- sheet open / close ---------- */
       function applySheet() {
         const panel = document.getElementById('wt-panel');
         const back = document.getElementById('wt-backdrop');
@@ -663,12 +683,114 @@
         if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
         if (history.state && history.state.wtSheet) { try { history.back(); } catch (e) { } }
       };
-      // Android back button / swipe-back closes the sheet instead of leaving the page
       window.addEventListener('popstate', () => { if (sheetOpen) { sheetOpen = false; applySheet(); } });
       document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && sheetOpen) window.closeSheet(); });
-      window.matchMedia('(min-width: 1024px)').addEventListener?.('change', applySheet);
+      if (window.matchMedia) {
+        const mq = window.matchMedia('(min-width: 1024px)');
+        if (mq.addEventListener) mq.addEventListener('change', applySheet);
+        else if (mq.addListener) mq.addListener(applySheet);
+      }
 
-      /* ==================== 2. READY TO SERVE ==================== */
+      /* ==================== MY TICKETS ==================== */
+      function renderMyTickets(myTickets) {
+        return `
+          <div class="wt-rhead">
+            <div>
+              <h2>My Tickets</h2>
+              <p>${myTickets.length ? `${myTickets.length} active ticket${myTickets.length === 1 ? '' : 's'} from this terminal.` : 'Orders you send will appear here until served or cancelled.'}</p>
+            </div>
+            <button type="button" class="wt-btn" onclick="Savor.navigate('menu')">
+              ${icon('plus-circle', 'w-4 h-4')} New order
+            </button>
+          </div>
+
+          ${myTickets.length === 0 ? `
+            <div class="wt-done">
+              <div class="ic">${icon('inbox', 'w-8 h-8')}</div>
+              <h3>No active tickets</h3>
+              <p>Every ticket you've sent has either been served or cancelled. Tap below to start a new order.</p>
+              <button type="button" class="wt-btn" style="margin:0 auto" onclick="Savor.navigate('menu')">
+                ${icon('plus-circle', 'w-4 h-4')} Take order
+              </button>
+            </div>
+          ` : `
+            <div class="wt-rgrid">
+              ${myTickets.map(o => renderTicketCard(o)).join('')}
+            </div>
+          `}
+        `;
+      }
+
+      function renderTicketCard(o) {
+        const statusLabel = { PENDING: 'Sent to kitchen', PREPARING: 'Cooking', READY: 'Ready to serve' };
+        const pillClass = { PENDING: 'pill-pending', PREPARING: 'pill-preparing', READY: 'pill-ready' };
+        const borderColor = o.status === 'READY' ? 'var(--success)' : o.status === 'PREPARING' ? 'var(--primary)' : 'var(--info)';
+        const canCancel = o.status === 'PENDING' || o.status === 'PREPARING';
+
+        return `
+          <article class="wt-rcard" style="border-left-color: ${borderColor};">
+            <div class="wt-rtop">
+              <div style="min-width:0">
+                <div class="wt-rtable">${esc(orderMetaText(o) || 'Dine-In')}</div>
+                <div class="wt-rcode wt-mono">${esc(o.code)} · ${fmtTime(o.createdAt)}</div>
+              </div>
+              <span class="pill ${pillClass[o.status] || 'pill-completed'}">${statusLabel[o.status] || o.status}</span>
+            </div>
+
+            ${(o.items || []).map(item => `
+              <div class="wt-ritem">
+                <span class="q wt-mono">${item.qty}×</span>
+                <div class="n">${esc(item.name)}${item.note ? `<small>“${esc(item.note)}”</small>` : ''}</div>
+              </div>
+            `).join('')}
+
+            <div class="wt-rfoot">
+              <small>${peso(S.orderTotal(o))} · ${readyCount(o)} of ${itemCount(o)} plated</small>
+              ${canCancel ? `
+                <button type="button" class="wt-all" style="border-color:var(--alert);color:var(--alert);"
+                  onclick="window.confirmCancel('${esc(o.id)}', '${esc(o.code)}')">
+                  ${icon('x-circle', 'w-4 h-4')} Cancel ticket
+                </button>
+              ` : `
+                <button type="button" class="wt-all" onclick="Savor.navigate('ready')">
+                  ${icon('bell', 'w-4 h-4')} Pick up at pass
+                </button>
+              `}
+            </div>
+          </article>
+        `;
+      }
+
+      window.confirmCancel = (orderId, orderCode) => {
+        S.Modal.open(`
+          <div class="p-6 max-w-sm mx-auto text-center">
+            <div class="w-14 h-14 rounded-2xl bg-alert-soft mx-auto flex items-center justify-center mb-4" style="color:var(--alert)">
+              ${icon('alert-triangle', 'w-7 h-7')}
+            </div>
+            <h3 class="font-serif font-bold text-xl">Cancel Ticket ${esc(orderCode)}?</h3>
+            <p class="text-sm text-muted mt-2 leading-relaxed">
+              This removes the order from the kitchen queue and the cashier's bill. The order cannot be reopened.
+            </p>
+            <div class="flex gap-2.5 mt-6">
+              <button type="button" class="btn btn-ghost flex-1 justify-center" onclick="Savor.Modal.close()">
+                Keep ticket
+              </button>
+              <button type="button" class="btn flex-1 justify-center" style="background:var(--alert);color:#fff" onclick="window.executeCancel('${orderId}')">
+                ${icon('x-circle', 'w-4 h-4')} Cancel ticket
+              </button>
+            </div>
+          </div>
+        `);
+      };
+
+      window.executeCancel = async (orderId) => {
+        await S.Data.updateOrderStatus(orderId, 'CANCELLED', session.name || 'Waiter');
+        S.Modal.close();
+        toast('Ticket cancelled — kitchen and cashier notified.', 3000);
+        render();
+      };
+
+      /* ==================== READY ==================== */
       function readySince(o) {
         const ts = (o.items || []).filter(i => i && i.ready && !i.served).map(i => Number(i.readyAt) || 0).filter(Boolean);
         return ts.length ? Math.min(...ts) : (Number(o.updatedAt) || Number(o.createdAt) || Date.now());
@@ -728,7 +850,7 @@
         `;
       }
 
-      /* ==================== WAITER ACTIONS ==================== */
+      /* ==================== ACTIONS ==================== */
       window.setCategory = (cat) => { currentCategory = cat; updateChips(); updateMenuList(); };
       window.setSearch = (val) => { searchQuery = val; updateMenuList(); };
       window.clearSearch = () => {
@@ -742,7 +864,7 @@
 
       window.quickSetTable = (val) => {
         syncTicketInputsFromDOM();
-        ticketTable = (ticketTable.trim() === val) ? '' : val;   // tap again to deselect
+        ticketTable = (ticketTable.trim() === val) ? '' : val;
         updatePanel();
         updateCartBar();
       };
@@ -774,7 +896,6 @@
       };
 
       window.setCartNote = (idx, val) => { if (cart[idx]) cart[idx].note = val; };
-
       window.removeCartItem = (idx) => { cart.splice(idx, 1); refreshOrderUI(); };
 
       window.submitTicket = async () => {
@@ -808,11 +929,10 @@
           ticketTable = '';
           customerName = '';
           if (sheetOpen) window.closeSheet();
-          toast(`Ticket ${esc(order.code)} sent to kitchen (${esc(finalTable)})!`, 3500, 'success');
+          toast(`Ticket ${order.code} sent to kitchen (${finalTable})!`, 3500, 'success');
           render(false);
         } catch (err) {
           sending = false;
-          console.error('Send ticket failed:', err);
           toast('Could not send the ticket. Check your connection and try again.', 4000);
           updatePanel();
         }
@@ -833,11 +953,10 @@
             await S.Data.serveItem(orderId, i, S.session.name || 'Waiter');
           }
         }
-        toast(`All ready dishes for ${esc(o.code)} delivered!`, 2500, 'success');
+        toast(`All ready dishes for ${o.code} delivered!`, 2500, 'success');
         render();
       };
 
-      // keep "Xm waiting" labels fresh on the Ready screen
       setInterval(() => {
         if (S.currentScreen === 'ready' && !(document.activeElement && document.activeElement.dataset && document.activeElement.dataset.fk)) render();
       }, 30000);
