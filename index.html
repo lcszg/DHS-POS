@@ -26,11 +26,56 @@
       const { $, esc, icon, toast, setHtml } = S;
 
       const ROLES = [
-        { key: 'admin', title: 'Owner &amp; Admin CMS', subtitle: 'Complete menu catalog, staff roles, live order flow, sales analytics, and settings.', icon: 'layout-dashboard', page: 'admin.html', badge: 'Full CMS Hub', badgeColor: 'pill-paid', defaultPin: '1212' },
-        { key: 'semi_admin', title: 'Floor Manager Portal', subtitle: 'Add new dishes with photos, toggle 86 availability, and monitor dining tables.', icon: 'sliders-horizontal', page: 'semi-admin.html', badge: 'Floor Manager', badgeColor: 'pill-pending', defaultPin: '2222' },
-        { key: 'waiter', title: 'Floor Waiter Portal', subtitle: 'Table ordering, instant kitchen ticket dispatch, and live ready-dish alerts.', icon: 'concierge-bell', page: 'waiter.html', badge: 'Floor Mobile', badgeColor: 'pill-unpaid', defaultPin: '3333' },
-        { key: 'kitchen', title: 'Kitchen Display Pass (KDS)', subtitle: 'Real-time incoming tickets, audio order chime, and dish-by-dish checkoffs.', icon: 'chef-hat', page: 'kitchen.html', badge: 'Pass Station', badgeColor: 'pill-paid', defaultPin: '4444' },
-        { key: 'cashier', title: 'Cashier &amp; Billing', subtitle: 'Live billing counter, split bills, Senior/PWD discounts, and receipt printing.', icon: 'receipt', page: 'cashier.html', badge: 'Counter POS', badgeColor: 'pill-info', defaultPin: '5555' }
+        {
+          key: 'admin',
+          title: 'Owner &amp; Admin CMS',
+          subtitle: 'Complete menu catalog, staff roles, live order flow, sales analytics, and settings.',
+          icon: 'layout-dashboard',
+          page: 'admin.html',
+          badge: 'Full CMS Hub',
+          badgeColor: 'pill-paid',
+          defaultPin: '1212'
+        },
+        {
+          key: 'semi_admin',
+          title: 'Floor Manager Portal',
+          subtitle: 'Add new dishes with photos, toggle 86 availability, and monitor dining tables.',
+          icon: 'sliders-horizontal',
+          page: 'semi-admin.html',
+          badge: 'Floor Manager',
+          badgeColor: 'pill-pending',
+          defaultPin: '2222'
+        },
+        {
+          key: 'waiter',
+          title: 'Floor Waiter Portal',
+          subtitle: 'Table ordering, instant kitchen ticket dispatch, and live ready-dish alerts.',
+          icon: 'concierge-bell',
+          page: 'waiter.html',
+          badge: 'Floor Mobile',
+          badgeColor: 'pill-unpaid',
+          defaultPin: '3333'
+        },
+        {
+          key: 'kitchen',
+          title: 'Kitchen Display Pass (KDS)',
+          subtitle: 'Real-time incoming tickets, audio order chime, and dish-by-dish checkoffs.',
+          icon: 'chef-hat',
+          page: 'kitchen.html',
+          badge: 'Pass Station',
+          badgeColor: 'pill-paid',
+          defaultPin: '4444'
+        },
+        {
+          key: 'cashier',
+          title: 'Cashier &amp; Billing',
+          subtitle: 'Live billing counter, split bills, Senior/PWD discounts, and receipt printing.',
+          icon: 'receipt',
+          page: 'cashier.html',
+          badge: 'Counter POS',
+          badgeColor: 'pill-info',
+          defaultPin: '5555'
+        }
       ];
 
       let currentUsername = '';
@@ -40,6 +85,7 @@
       function render() {
         const app = document.getElementById('app');
         if (!app) return;
+
         setHtml(app, `
       <header class="navbar" role="banner">
         <div class="navbar-inner">
@@ -63,8 +109,12 @@
           <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/10 text-amber-500 text-xs font-bold mb-4 border border-amber-500/20">
             ${icon('lock', 'w-3.5 h-3.5')} Authorized Staff Sign-In
           </div>
-          <h2 class="font-serif text-3xl sm:text-5xl font-bold tracking-tight mb-3">Select Your Station</h2>
-          <p class="text-sm sm:text-base text-muted leading-relaxed">Tap your station to sign in. Staff stations require a registered username and 4-digit PIN. Master Admin PIN bypasses the username requirement.</p>
+          <h2 class="font-serif text-3xl sm:text-5xl font-bold tracking-tight mb-3">
+            Select Your Station
+          </h2>
+          <p class="text-sm sm:text-base text-muted leading-relaxed">
+            Tap your station to sign in. Staff stations require a registered username and 4-digit PIN. Master Admin PIN bypasses the username requirement.
+          </p>
         </div>
 
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
@@ -80,16 +130,23 @@
                 <h3 class="font-serif font-bold text-xl group-hover:text-amber-500 transition-colors">${role.title}</h3>
                 <p class="text-xs text-muted mt-2 leading-relaxed">${role.subtitle}</p>
               </div>
+
               <div class="mt-6 pt-4 border-t border-border flex items-center justify-between">
-                <span class="inline-flex items-center gap-1.5 text-xs text-muted font-medium">${icon('shield-check', 'w-3.5 h-3.5 text-emerald-500/80')} Secure Sign-in</span>
-                <span class="text-xs font-bold text-amber-500 flex items-center gap-1 group-hover:translate-x-1 transition-transform">Enter Station &rarr;</span>
+                <span class="inline-flex items-center gap-1.5 text-xs text-muted font-medium">
+                  ${icon('shield-check', 'w-3.5 h-3.5 text-emerald-500/80')} Secure Sign-in
+                </span>
+                <span class="text-xs font-bold text-amber-500 flex items-center gap-1 group-hover:translate-x-1 transition-transform">
+                  Enter Station &rarr;
+                </span>
               </div>
             </div>
           `).join('')}
         </div>
       </main>
 
-      <footer class="border-t border-border py-6 text-center text-xs text-muted">✦ Food &amp; Beverage — High-Performance Cloud &amp; Local Restaurant POS</footer>
+      <footer class="border-t border-border py-6 text-center text-xs text-muted">
+        ✦ Food &amp; Beverage — High-Performance Cloud &amp; Local Restaurant POS
+      </footer>
     `);
       }
 
@@ -99,30 +156,54 @@
         currentUsername = '';
         const role = ROLES.find(r => r.key === roleKey);
         if (!role) return;
+
         renderLoginModal();
-        if (roleKey !== 'admin') setTimeout(() => document.getElementById('login-username')?.focus(), 50);
+        if (roleKey !== 'admin') {
+          setTimeout(() => {
+            document.getElementById('login-username')?.focus();
+          }, 50);
+        }
       };
       window.openPinModal = window.openLoginModal;
-      window.updateLoginUser = (val) => { currentUsername = S.sanitizeUsername(val); };
+
+      window.updateLoginUser = (val) => {
+        currentUsername = S.sanitizeUsername(val);
+      };
 
       function updatePinDotsDisplay() {
         const container = document.getElementById('pin-dots-container');
         if (!container) return;
-        container.innerHTML = [0, 1, 2, 3].map(i => `<span class="pin-dot ${i < currentPin.length ? 'filled' : ''}"></span>`).join('');
+        const dotsHtml = [0, 1, 2, 3].map(i => {
+          const filled = i < currentPin.length;
+          return `<span class="pin-dot ${filled ? 'filled' : ''}"></span>`;
+        }).join('');
+        container.innerHTML = dotsHtml;
       }
 
       function renderLoginModal() {
         const role = ROLES.find(r => r.key === activeRoleKey);
         if (!role) return;
         const isAdminStation = (role.key === 'admin');
-        const dots = [0, 1, 2, 3].map(i => `<span class="pin-dot ${i < currentPin.length ? 'filled' : ''}"></span>`).join('');
+
+        const dots = [0, 1, 2, 3].map(i => {
+          const filled = i < currentPin.length;
+          return `<span class="pin-dot ${filled ? 'filled' : ''}"></span>`;
+        }).join('');
 
         S.Modal.open(`
       <div class="p-5 sm:p-6 max-w-sm mx-auto text-center relative" id="pin-pad-container">
-        <button type="button" class="absolute top-3 right-3 text-muted hover:text-ink transition-colors p-1" onclick="Savor.Modal.close()" title="Close">${icon('x', 'w-5 h-5')}</button>
-        <div class="w-12 h-12 rounded-2xl bg-amber-500/15 text-amber-500 mx-auto flex items-center justify-center mb-2">${icon(role.icon, 'w-6 h-6')}</div>
+        <button type="button" class="absolute top-3 right-3 text-muted hover:text-ink transition-colors p-1" onclick="Savor.Modal.close()" title="Close">
+          ${icon('x', 'w-5 h-5')}
+        </button>
+
+        <div class="w-12 h-12 rounded-2xl bg-amber-500/15 text-amber-500 mx-auto flex items-center justify-center mb-2">
+          ${icon(role.icon, 'w-6 h-6')}
+        </div>
         <h3 class="font-serif font-bold text-xl">${role.title}</h3>
-        <p class="text-xs text-muted mt-0.5 mb-3">${isAdminStation ? 'Enter 4-digit Master PIN to unlock Admin CMS' : `Enter your registered staff username and 4-digit PIN`}</p>
+        <p class="text-xs text-muted mt-0.5 mb-3">
+          ${isAdminStation ? 'Enter 4-digit Master PIN to unlock Admin CMS' : `Enter your registered staff username and 4-digit PIN`}
+        </p>
+
         ${!isAdminStation ? `
           <div class="mb-3 text-left">
             <label class="block text-xs font-bold text-muted uppercase tracking-wider mb-1">Staff Username <span class="text-rose-500">*</span></label>
@@ -132,16 +213,33 @@
             </div>
           </div>
         ` : ''}
+
         <div class="mb-3 text-left">
-          <label class="block text-xs font-bold text-muted uppercase tracking-wider mb-1">${isAdminStation ? '4-Digit Master PIN' : `4-Digit PIN`}</label>
-          <div id="pin-dots-container" class="flex items-center justify-center gap-3.5 py-2.5 bg-surface-2 rounded-xl border border-border select-none">${dots}</div>
+          <label class="block text-xs font-bold text-muted uppercase tracking-wider mb-1">
+            ${isAdminStation ? '4-Digit Master PIN' : `4-Digit PIN`}
+          </label>
+          <div id="pin-dots-container" class="flex items-center justify-center gap-3.5 py-2.5 bg-surface-2 rounded-xl border border-border select-none">
+            ${dots}
+          </div>
         </div>
+
         <div class="grid grid-cols-3 gap-2 max-w-[280px] sm:max-w-[260px] mx-auto mb-4">
-          ${[1,2,3,4,5,6,7,8,9].map(n => `<button type="button" class="h-14 sm:h-12 rounded-xl bg-surface-2 hover:bg-surface-3 active:scale-95 text-xl sm:text-lg font-bold font-mono transition-all border border-border/80 flex items-center justify-center" onclick="window.enterPinDigit('${n}')">${n}</button>`).join('')}
-          <button type="button" class="h-14 sm:h-12 rounded-xl bg-surface-2 hover:bg-surface-3 active:scale-95 text-xs font-semibold text-muted hover:text-ink transition-all border border-border/80 flex items-center justify-center" onclick="window.clearPin()">Clear</button>
-          <button type="button" class="h-14 sm:h-12 rounded-xl bg-surface-2 hover:bg-surface-3 active:scale-95 text-xl sm:text-lg font-bold font-mono transition-all border border-border/80 flex items-center justify-center" onclick="window.enterPinDigit('0')">0</button>
-          <button type="button" class="h-14 sm:h-12 rounded-xl bg-surface-2 hover:bg-surface-3 active:scale-95 text-muted hover:text-ink transition-all border border-border/80 flex items-center justify-center" onclick="window.backspacePin()" title="Backspace">${icon('delete', 'w-5 h-5')}</button>
+          ${[1, 2, 3, 4, 5, 6, 7, 8, 9].map(num => `
+            <button type="button" class="h-14 sm:h-12 rounded-xl bg-surface-2 hover:bg-surface-3 active:scale-95 text-xl sm:text-lg font-bold font-mono transition-all border border-border/80 flex items-center justify-center" onclick="window.enterPinDigit('${num}')">
+              ${num}
+            </button>
+          `).join('')}
+          <button type="button" class="h-14 sm:h-12 rounded-xl bg-surface-2 hover:bg-surface-3 active:scale-95 text-xs font-semibold text-muted hover:text-ink transition-all border border-border/80 flex items-center justify-center" onclick="window.clearPin()">
+            Clear
+          </button>
+          <button type="button" class="h-14 sm:h-12 rounded-xl bg-surface-2 hover:bg-surface-3 active:scale-95 text-xl sm:text-lg font-bold font-mono transition-all border border-border/80 flex items-center justify-center" onclick="window.enterPinDigit('0')">
+            0
+          </button>
+          <button type="button" class="h-14 sm:h-12 rounded-xl bg-surface-2 hover:bg-surface-3 active:scale-95 text-muted hover:text-ink transition-all border border-border/80 flex items-center justify-center" onclick="window.backspacePin()" title="Backspace">
+            ${icon('delete', 'w-5 h-5')}
+          </button>
         </div>
+
         <button type="button" class="btn btn-primary w-full justify-center py-2.5 text-xs font-bold" onclick="window.submitLogin()">
           ${icon('log-in', 'w-4 h-4')} ${isAdminStation ? 'Unlock Admin Portal' : 'Sign In to Station'}
         </button>
@@ -152,67 +250,112 @@
       window.enterPinDigit = (digit) => {
         const userEl = document.getElementById('login-username');
         if (userEl) currentUsername = S.sanitizeUsername(userEl.value);
+
         if (currentPin.length < 4) {
           currentPin += String(digit);
           updatePinDotsDisplay();
-          if (currentPin.length === 4) setTimeout(verifyAndLogin, 120);
+
+          if (currentPin.length === 4) {
+            setTimeout(verifyAndLogin, 120);
+          }
         }
       };
+
       window.backspacePin = () => {
         const userEl = document.getElementById('login-username');
         if (userEl) currentUsername = S.sanitizeUsername(userEl.value);
-        if (currentPin.length > 0) { currentPin = currentPin.slice(0, -1); updatePinDotsDisplay(); }
+
+        if (currentPin.length > 0) {
+          currentPin = currentPin.slice(0, -1);
+          updatePinDotsDisplay();
+        }
       };
+
       window.clearPin = () => {
         const userEl = document.getElementById('login-username');
         if (userEl) currentUsername = S.sanitizeUsername(userEl.value);
+
         currentPin = '';
         updatePinDotsDisplay();
       };
-      window.submitLogin = () => verifyAndLogin();
+
+      window.submitLogin = () => {
+        verifyAndLogin();
+      };
 
       function verifyAndLogin() {
         S.loadLocalState();
+
         const role = ROLES.find(r => r.key === activeRoleKey);
         if (!role) return;
-        if (currentPin.length !== 4) { toast('Please enter your complete 4-digit PIN.', 2500, 'alert'); return; }
 
-        const adminAccount = S.state.accounts.find(a => a.role === 'Admin' || a.id === 'acc-admin') || { id: 'acc-admin', name: 'Restaurant Owner', role: 'Admin', pin: '1212', status: 'Active' };
+        if (currentPin.length !== 4) {
+          toast('Please enter your complete 4-digit PIN.', 2500, 'alert');
+          return;
+        }
+
+        const adminAccount = S.state.accounts.find(a => a.role === 'Admin' || a.id === 'acc-admin') || {
+          id: 'acc-admin', name: 'Restaurant Owner', role: 'Admin', pin: '1212', status: 'Active'
+        };
         const adminPin = String(adminAccount.pin || '1212').trim();
 
+        // 1. Admin Station login
         if (activeRoleKey === 'admin') {
           if (currentPin === adminPin || currentPin === '1212') {
             const cleanAdmin = { ...adminAccount, role: 'Admin', pin: adminPin };
-            delete cleanAdmin.username; delete cleanAdmin.password;
+            delete cleanAdmin.username;
+            delete cleanAdmin.password;
             S.setSession(cleanAdmin);
             S.Modal.close();
             toast('Welcome, Restaurant Owner!', 2000, 'success');
-            setTimeout(() => { window.location.href = role.page; }, 150);
+            setTimeout(() => {
+              window.location.href = role.page;
+            }, 150);
             return;
-          } else { shakeAndError('Incorrect Admin PIN. Please try again.'); return; }
+          } else {
+            shakeAndError('Incorrect Admin PIN. Please try again.');
+            return;
+          }
         }
 
+        // 2. Master PIN override to enter any station as Admin (Bypasses username requirement)
         if (currentPin === adminPin || currentPin === '1212') {
           S.setSession({ id: 'acc-admin', name: 'Restaurant Owner', role: 'Admin', pin: adminPin });
           S.Modal.close();
           toast(`Entering ${role.title} as Owner`, 2000, 'success');
-          setTimeout(() => { window.location.href = role.page; }, 150);
+          setTimeout(() => {
+            window.location.href = role.page;
+          }, 150);
           return;
         }
 
+        // 3. Strict Username Requirement for all staff stations
         const domUser = document.getElementById('login-username');
         const rawUser = (domUser?.value || currentUsername || '').trim();
         const cleanUser = S.sanitizeUsername(rawUser).toLowerCase();
-        if (!cleanUser) { shakeAndError('Staff username is required to sign in.'); return; }
 
+        if (!cleanUser) {
+          shakeAndError('Staff username is required to sign in.');
+          return;
+        }
+
+        // 4. Individual Staff Account login by username and PIN
         const matchedAccount = S.state.accounts.find(a => {
           if (!a || !a.pin || !a.username) return false;
           const pMatch = String(a.pin || '').trim() === currentPin;
           const uMatch = S.sanitizeUsername(a.username).toLowerCase() === cleanUser;
           return pMatch && uMatch;
         });
-        if (!matchedAccount) { shakeAndError(`Incorrect username or PIN for @${cleanUser}.`); return; }
-        if (matchedAccount.status === 'Inactive') { shakeAndError(`Staff account @${matchedAccount.username} is currently set to Inactive.`); return; }
+
+        if (!matchedAccount) {
+          shakeAndError(`Incorrect username or PIN for @${cleanUser}.`);
+          return;
+        }
+
+        if (matchedAccount.status === 'Inactive') {
+          shakeAndError(`Staff account @${matchedAccount.username} is currently set to Inactive.`);
+          return;
+        }
 
         function isRoleAllowed(stationKey, accountRole) {
           const sKey = String(stationKey || '').toLowerCase().replace(/[\s_-]+/g, '');
@@ -223,18 +366,27 @@
           if (sKey === 'floormanager' && (aRole === 'semiadmin' || aRole === 'floormanager' || aRole === 'manager')) return true;
           return false;
         }
-        if (!isRoleAllowed(role.key, matchedAccount.role)) { toast(`Access Denied: @${matchedAccount.username} is assigned to ${matchedAccount.role}, not this station.`, 3500, 'alert'); return; }
+
+        if (!isRoleAllowed(role.key, matchedAccount.role)) {
+          toast(`Access Denied: @${matchedAccount.username} is assigned to ${matchedAccount.role}, not this station.`, 3500, 'alert');
+          return;
+        }
 
         S.setSession(matchedAccount);
         S.Modal.close();
         toast(`Welcome, ${matchedAccount.name || '@' + matchedAccount.username}!`, 2000, 'success');
-        setTimeout(() => { window.location.href = role.page; }, 150);
+        setTimeout(() => {
+          window.location.href = role.page;
+        }, 150);
       }
 
       function shakeAndError(msg) {
         currentPin = '';
         const padEl = document.getElementById('pin-pad-container');
-        if (padEl) { padEl.classList.add('animate-shake'); setTimeout(() => padEl.classList.remove('animate-shake'), 450); }
+        if (padEl) {
+          padEl.classList.add('animate-shake');
+          setTimeout(() => padEl.classList.remove('animate-shake'), 450);
+        }
         updatePinDotsDisplay();
         toast(msg, 3200, 'alert');
       }
@@ -243,23 +395,37 @@
         const modalBackdrop = document.getElementById('modal-backdrop');
         if (!modalBackdrop || !modalBackdrop.classList.contains('show')) return;
         if (!activeRoleKey) return;
+
         const userInput = document.getElementById('login-username');
         if (document.activeElement === userInput) {
-          if (e.key === 'Enter' || e.key === 'Tab') { e.preventDefault(); userInput.blur(); if (currentPin.length === 4) verifyAndLogin(); }
+          if (e.key === 'Enter' || e.key === 'Tab') {
+            e.preventDefault();
+            userInput.blur();
+            if (currentPin.length === 4) verifyAndLogin();
+          }
           return;
         }
-        if (e.key >= '0' && e.key <= '9') window.enterPinDigit(e.key);
-        else if (e.key === 'Backspace') window.backspacePin();
-        else if (e.key === 'Enter') window.submitLogin();
-        else if (e.key === 'Escape') S.Modal.close();
+
+        if (e.key >= '0' && e.key <= '9') {
+          window.enterPinDigit(e.key);
+        } else if (e.key === 'Backspace') {
+          window.backspacePin();
+        } else if (e.key === 'Enter') {
+          window.submitLogin();
+        } else if (e.key === 'Escape') {
+          S.Modal.close();
+        }
       });
 
+      // Auto-open station modal if redirected (e.g. ?need_login=waiter)
       try {
         const params = new URLSearchParams(window.location.search);
         const need = params.get('need_login') || params.get('unauthorized');
         if (need) {
           const match = ROLES.find(r => r.key === need || r.key.replace('_', '') === need.replace('_', ''));
-          if (match) setTimeout(() => window.openLoginModal(match.key), 120);
+          if (match) {
+            setTimeout(() => window.openLoginModal(match.key), 120);
+          }
         }
       } catch (e) { }
 

@@ -215,9 +215,7 @@ function memoryCreateOrder(payload) {
     ready: false,
     readyAt: null,
     served: false,
-    servedAt: null,
-    cancelled: false,
-    cancelledAt: null
+    servedAt: null
   }));
 
   let total = Number(payload.total);
@@ -288,8 +286,7 @@ async function handleAction(action, payload) {
         it.ready = typeof payload.ready === 'boolean' ? payload.ready : true;
         it.readyAt = it.ready ? now : null;
         if (!it.ready) it.served = false;
-        const activeItems = (ord.items || []).filter(i => !i.cancelled);
-        const allReady = activeItems.length > 0 && activeItems.every(i => !!i.ready);
+        const allReady = (ord.items || []).every(i => !!i.ready);
         ord.status = allReady ? 'READY' : 'PREPARING';
         ord.updatedAt = now;
         ord.staff = payload.staff || 'Kitchen';
@@ -304,27 +301,6 @@ async function handleAction(action, payload) {
         it.served = true;
         it.servedAt = now;
         if (ord.items.every(i => !!i.served)) ord.status = 'COMPLETED';
-        ord.updatedAt = now;
-        ord.staff = payload.staff || 'Waiter';
-        return ord;
-      }
-      case 'cancelOrderItem': {
-        const ord = memoryStore.orders.find(o => o.id === payload.orderId);
-        if (!ord) throw new Error('Order not found');
-        const it = ord.items[payload.itemIndex];
-        if (!it) throw new Error('Item index invalid');
-        if (it.cancelled) return ord;
-
-        const now = Date.now();
-        it.cancelled = true;
-        it.cancelledAt = now;
-        it.ready = false; it.readyAt = null;
-        it.served = false; it.servedAt = null;
-
-        if ((ord.items || []).every(i => i.cancelled)) ord.status = 'CANCELLED';
-        ord.total = (ord.items || []).reduce(
-          (s, i) => i.cancelled ? s : s + (Number(i.price) || 0) * (Number(i.qty) || 1), 0
-        );
         ord.updatedAt = now;
         ord.staff = payload.staff || 'Waiter';
         return ord;
@@ -453,9 +429,7 @@ async function handleAction(action, payload) {
         ready: false,
         readyAt: null,
         served: false,
-        servedAt: null,
-        cancelled: false,
-        cancelledAt: null
+        servedAt: null
       }));
 
       let total = Number(payload.total);
@@ -516,8 +490,7 @@ async function handleAction(action, payload) {
       items[idx].readyAt = newReady ? now : null;
       if (!newReady) items[idx].served = false;
 
-      const activeItems = items.filter(i => !i.cancelled);
-      const allReady = activeItems.length > 0 && activeItems.every(i => !!i.ready);
+      const allReady = items.every(i => !!i.ready);
       let newStatus = allReady ? 'READY' : 'PREPARING';
       const staff = payload.staff || 'Kitchen';
 
@@ -550,8 +523,7 @@ async function handleAction(action, payload) {
       items[idx].served = true;
       items[idx].servedAt = now;
 
-      const activeItems = items.filter(i => !i.cancelled);
-      const allServed = activeItems.length > 0 && activeItems.every(it => !!it.served);
+      const allServed = items.length > 0 && items.every(it => !!it.served);
       const newStatus = allServed ? 'COMPLETED' : ord.status;
       const staff = payload.staff || 'Waiter';
 
@@ -570,38 +542,6 @@ async function handleAction(action, payload) {
         updatedAt: now,
         staff
       };
-    }
-
-    case 'cancelOrderItem': {
-      const rows = await querySQL(`SELECT * FROM orders WHERE "id" = $1`, [payload.orderId]);
-      if (!rows.length) throw new Error('Order not found');
-      const ord = rows[0];
-      let items = typeof ord.items === 'string' ? JSON.parse(ord.items) : ord.items;
-      const idx = Number(payload.itemIndex);
-      if (!items || !items[idx]) throw new Error('Invalid item index');
-      if (items[idx].cancelled) {
-        return { id: ord.id, items, status: ord.status, total: Number(ord.total) || 0 };
-      }
-
-      const now = Date.now();
-      items[idx].cancelled = true;
-      items[idx].cancelledAt = now;
-      items[idx].ready = false; items[idx].readyAt = null;
-      items[idx].served = false; items[idx].servedAt = null;
-
-      const allCancelled = items.every(i => i.cancelled);
-      const newStatus = allCancelled ? 'CANCELLED' : ord.status;
-      const newTotal = items.reduce(
-        (s, i) => i.cancelled ? s : s + (Number(i.price) || 0) * (Number(i.qty) || 1), 0
-      );
-      const staff = payload.staff || 'Waiter';
-
-      await querySQL(
-        `UPDATE orders SET "items" = $1::jsonb, "total" = $2, "status" = $3, "updatedAt" = $4, "staff" = $5 WHERE "id" = $6`,
-        [JSON.stringify(items), newTotal, newStatus, now, staff, payload.orderId]
-      );
-
-      return { id: ord.id, items, total: newTotal, status: newStatus };
     }
 
     case 'markOrderPaid': {

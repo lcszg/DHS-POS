@@ -250,15 +250,8 @@
   }
 
   function orderTotal(o) {
-    const items = o.items || [];
-    const hasCancelled = items.some(i => i.cancelled);
-    if (hasCancelled || typeof o.total !== 'number' || isNaN(o.total) || o.total <= 0) {
-      return items.reduce((sum, item) => {
-        if (item.cancelled) return sum;
-        return sum + ((Number(item.price) || 0) * (Number(item.qty) || 1));
-      }, 0);
-    }
-    return o.total;
+    if (typeof o.total === 'number' && !isNaN(o.total) && o.total > 0) return o.total;
+    return (o.items || []).reduce((sum, item) => sum + ((Number(item.price) || 0) * (Number(item.qty) || 1)), 0);
   }
 
   function hasMeta(o) {
@@ -276,19 +269,14 @@
     return hasMeta(o) ? `<span class="table-tag">${icon('map-pin', 'w-3 h-3')} ${esc(orderMetaText(o))}</span>` : '';
   }
 
-  function itemCount(o) { return (o.items || []).filter(i => i && !i.cancelled).length; }
-  function servedCount(o) { return (o.items || []).filter(i => i && i.served && !i.cancelled).length; }
-  function readyCount(o) { return (o.items || []).filter(i => i && i.ready && !i.cancelled).length; }
+  function itemCount(o) { return (o.items || []).length; }
+  function servedCount(o) { return (o.items || []).filter(i => i && i.served).length; }
+  function readyCount(o) { return (o.items || []).filter(i => i && i.ready).length; }
   function unreadyCount(o) { return itemCount(o) - readyCount(o); }
-  function readyUnservedCount(o) { return (o.items || []).filter(i => i && i.ready && !i.served && !i.cancelled).length; }
-  function allServed(o) {
-    const items = (o.items || []).filter(i => i && !i.cancelled);
-    return items.length > 0 && items.every(i => i && i.served);
-  }
-  function itemSummary(o) {
-    return (o.items || []).filter(i => !i.cancelled).map(i => `${i.qty}× ${i.name}`).join(' · ');
-  }
-  function allNotes(o) { return (o.items || []).filter(i => i.note && !i.cancelled).map(i => i.note); }
+  function readyUnservedCount(o) { return (o.items || []).filter(i => i && i.ready && !i.served).length; }
+  function allServed(o) { const items = o.items || []; return items.length > 0 && items.every(i => i && i.served); }
+  function itemSummary(o) { return (o.items || []).map(i => `${i.qty}× ${i.name}`).join(' · '); }
+  function allNotes(o) { return (o.items || []).filter(i => i.note).map(i => i.note); }
 
   function normalizeMenuItem(m) {
     return {
@@ -633,21 +621,16 @@
     if (!Array.isArray(items)) items = [];
 
     const status = String(o.status || 'PENDING');
-    const normalizedItems = items.map(it => {
-      const itemCancelled = !!it.cancelled;
-      return {
-        name: String(it.name || ''),
-        qty: Number(it.qty) || 1,
-        note: String(it.note || ''),
-        price: Number(it.price) || 0,
-        ready: itemCancelled ? false : (!!it.ready || status === 'COMPLETED'),
-        readyAt: itemCancelled ? null : (it.readyAt || null),
-        served: itemCancelled ? false : (!!it.served || status === 'COMPLETED'),
-        servedAt: itemCancelled ? null : (it.servedAt || null),
-        cancelled: itemCancelled,
-        cancelledAt: itemCancelled ? (Number(it.cancelledAt) || null) : null
-      };
-    });
+    const normalizedItems = items.map(it => ({
+      name: String(it.name || ''),
+      qty: Number(it.qty) || 1,
+      note: String(it.note || ''),
+      price: Number(it.price) || 0,
+      ready: !!it.ready || status === 'COMPLETED',
+      readyAt: it.readyAt || null,
+      served: !!it.served || status === 'COMPLETED',
+      servedAt: it.servedAt || null
+    }));
 
     return {
       id: String(o.id || ''),
@@ -766,9 +749,7 @@
         ready: false,
         readyAt: null,
         served: false,
-        servedAt: null,
-        cancelled: false,
-        cancelledAt: null
+        servedAt: null
       }));
 
       let total = Number(payload.total);
@@ -859,16 +840,13 @@
       const order = state.orders.find(o => o.id === orderId);
       if (!order) return;
       const item = order.items[itemIndex];
-      if (!item || item.cancelled) return;
+      if (!item) return;
       const now = Date.now();
       item.ready = true;
       item.readyAt = now;
 
-      if (order.status !== 'CANCELLED') {
-        const activeItems = (order.items || []).filter(i => !i.cancelled);
-        const allDone = activeItems.length > 0 && activeItems.every(i => !!i.ready);
-        order.status = allDone ? 'READY' : 'PREPARING';
-      }
+      const allDone = (order.items || []).every(i => !!i.ready);
+      order.status = allDone ? 'READY' : 'PREPARING';
       order.updatedAt = now;
       order.staff = staff;
 
@@ -893,17 +871,14 @@
       const order = state.orders.find(o => o.id === orderId);
       if (!order) return;
       const item = order.items[itemIndex];
-      if (!item || item.cancelled) return;
+      if (!item) return;
       const now = Date.now();
       item.ready = !item.ready;
       item.readyAt = item.ready ? now : null;
       if (!item.ready) item.served = false;
 
-      if (order.status !== 'CANCELLED') {
-        const activeItems = (order.items || []).filter(i => !i.cancelled);
-        const allDone = activeItems.length > 0 && activeItems.every(i => !!i.ready);
-        order.status = allDone ? 'READY' : 'PREPARING';
-      }
+      const allDone = (order.items || []).every(i => !!i.ready);
+      order.status = allDone ? 'READY' : 'PREPARING';
       order.updatedAt = now;
       order.staff = staff;
 
@@ -928,7 +903,7 @@
       const order = state.orders.find(o => o.id === orderId);
       if (!order) return;
       const item = order.items[itemIndex];
-      if (!item || item.served || item.cancelled) return;
+      if (!item || item.served) return;
       const now = Date.now();
       item.served = true;
       item.servedAt = now;
@@ -980,51 +955,6 @@
         } catch (e) { }
       } else if (API.enabled) {
         try { await API.call('markOrderPaid', { id, paymentMethod, discount: order.discount }); } catch (e) { }
-      }
-
-      broadcast({ type: 'DATA_CHANGED' });
-      return order;
-    },
-
-    async cancelItem(orderId, itemIndex, staff = 'Waiter') {
-      const order = state.orders.find(o => o.id === orderId);
-      if (!order) return;
-      const item = order.items[itemIndex];
-      if (!item || item.cancelled) return;
-
-      const now = Date.now();
-      item.cancelled = true;
-      item.cancelledAt = now;
-      item.ready = false;
-      item.readyAt = null;
-      item.served = false;
-      item.servedAt = null;
-
-      const allCancelled = (order.items || []).every(i => i.cancelled);
-      if (allCancelled) order.status = 'CANCELLED';
-
-      const newTotal = (order.items || []).reduce(
-        (sum, i) => i.cancelled ? sum : sum + (Number(i.price) || 0) * (Number(i.qty) || 1),
-        0
-      );
-      order.total = newTotal;
-      order.subtotal = newTotal;
-      order.updatedAt = now;
-      order.staff = staff;
-
-      if (state.supabaseClient) {
-        try {
-          await state.supabaseClient.from('orders').update({
-            items: order.items,
-            total: order.total,
-            subtotal: order.subtotal,
-            status: order.status,
-            staff: order.staff,
-            updated_at: now
-          }).eq('id', orderId);
-        } catch (e) { console.warn('Supabase cancelItem error:', e); }
-      } else if (API.enabled) {
-        try { await API.call('cancelOrderItem', { orderId, itemIndex, staff }); } catch (e) { }
       }
 
       broadcast({ type: 'DATA_CHANGED' });
@@ -1371,9 +1301,9 @@
       <header class="navbar" role="banner">
         <div class="navbar-inner">
           <a href="index.html" class="brand" aria-label="Home">
-            <span class="brand-mark">F&amp;B</span>
+            <span class="brand-mark">✦</span>
             <span class="brand-text">
-              <span class="brand-title">Food &amp; Beverage</span>
+              <span class="brand-title">Savor &amp; Co.</span>
               <span class="brand-sub">${esc(roleTitle)}</span>
             </span>
           </a>

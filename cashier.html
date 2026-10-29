@@ -100,7 +100,7 @@
               </div>
 
               <div class="divide-y divide-border/60 my-3 text-xs">
-                ${(o.items || []).filter(i => !i.cancelled).map(i => `
+                ${(o.items || []).map(i => `
                   <div class="py-1.5 flex justify-between items-center">
                     <span>${i.qty}× ${esc(i.name)}</span>
                     <span class="font-semibold">${peso((i.price || 0) * (i.qty || 1))}</span>
@@ -253,7 +253,7 @@
         <div>
           <label class="block text-xs font-bold uppercase text-muted mb-1.5">Order Items (${itemCount(o)})</label>
           <div class="border border-border rounded-xl bg-surface-2 p-3 divide-y divide-border/60 max-h-56 overflow-y-auto mb-4">
-            ${(o.items || []).filter(i => !i.cancelled).map(i => `
+            ${(o.items || []).map(i => `
               <div class="py-2 flex justify-between items-start text-xs">
                 <div>
                   <span class="font-bold text-ink">${i.qty}× ${esc(i.name)}</span>
@@ -310,7 +310,7 @@
         </div>
 
         <div class="border-y border-dashed border-gray-400 py-2.5 my-2.5 space-y-1.5">
-          ${(o.items || []).filter(i => !i.cancelled).map(i => `
+          ${(o.items || []).map(i => `
             <div class="flex justify-between">
               <span>${i.qty}× ${esc(i.name)}</span>
               <span>${peso((i.price || 0) * (i.qty || 1))}</span>
