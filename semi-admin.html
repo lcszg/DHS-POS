@@ -217,7 +217,7 @@
               </div>
             </div>
             <div class="py-2.5 text-xs text-muted">
-              ${(o.items || []).map(i => `${i.qty}× ${esc(i.name)}`).join(' · ')}
+              ${(o.items || []).filter(i => !i.cancelled).map(i => `${i.qty}× ${esc(i.name)}`).join(' · ')}
             </div>
             <div class="pt-2 border-t border-border flex justify-between items-center text-xs">
               <span class="font-bold">${peso(orderTotal(o))}</span>

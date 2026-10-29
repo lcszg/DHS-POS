@@ -5,431 +5,865 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="theme-color" content="#0F0E0C">
-  <title>Food &amp; Beverage — Multi-Station Cloud POS</title>
+  <title>Food &amp; Beverage — Restaurant CMS &amp; Admin</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link
-    href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400..700;1,9..40,400..700&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap"
-    rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400..700;1,9..40,400..700&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap" rel="stylesheet">
   <script>tailwind.config = { darkMode: 'class', theme: { extend: { colors: { bg: 'var(--bg)', surface: 'var(--surface)', 'surface-2': 'var(--surface-2)', 'surface-3': 'var(--surface-3)', border: 'var(--border)', ink: 'var(--ink)', muted: 'var(--text-muted)', primary: 'var(--primary)' } } } };</script>
   <script src="https://cdn.tailwindcss.com/3.4.17"></script>
   <script src="https://cdn.jsdelivr.net/npm/lucide@0.577.0/dist/umd/lucide.min.js"></script>
   <script src="shared.js"></script>
 </head>
 
-<body class="min-h-screen flex flex-col justify-between bg-bg text-ink">
+<body class="bg-bg text-ink">
   <div id="app"></div>
 
   <script>
     (function () {
       const S = window.Savor;
-      const { $, esc, icon, toast, setHtml } = S;
+      const session = S.requireRole('admin');
+      if (!session) return;
+      S.session = session;
 
-      const ROLES = [
-        {
-          key: 'admin',
-          title: 'Owner &amp; Admin CMS',
-          subtitle: 'Complete menu catalog, staff roles, live order flow, sales analytics, and settings.',
-          icon: 'layout-dashboard',
-          page: 'admin.html',
-          badge: 'Full CMS Hub',
-          badgeColor: 'pill-paid',
-          defaultPin: '1212'
-        },
-        {
-          key: 'semi_admin',
-          title: 'Floor Manager Portal',
-          subtitle: 'Add new dishes with photos, toggle 86 availability, and monitor dining tables.',
-          icon: 'sliders-horizontal',
-          page: 'semi-admin.html',
-          badge: 'Floor Manager',
-          badgeColor: 'pill-pending',
-          defaultPin: '2222'
-        },
-        {
-          key: 'waiter',
-          title: 'Floor Waiter Portal',
-          subtitle: 'Table ordering, instant kitchen ticket dispatch, and live ready-dish alerts.',
-          icon: 'concierge-bell',
-          page: 'waiter.html',
-          badge: 'Floor Mobile',
-          badgeColor: 'pill-unpaid',
-          defaultPin: '3333'
-        },
-        {
-          key: 'kitchen',
-          title: 'Kitchen Display Pass (KDS)',
-          subtitle: 'Real-time incoming tickets, audio order chime, and dish-by-dish checkoffs.',
-          icon: 'chef-hat',
-          page: 'kitchen.html',
-          badge: 'Pass Station',
-          badgeColor: 'pill-paid',
-          defaultPin: '4444'
-        },
-        {
-          key: 'cashier',
-          title: 'Cashier &amp; Billing',
-          subtitle: 'Live billing counter, split bills, Senior/PWD discounts, and receipt printing.',
-          icon: 'receipt',
-          page: 'cashier.html',
-          badge: 'Counter POS',
-          badgeColor: 'pill-info',
-          defaultPin: '5555'
-        }
+      const { $, esc, icon, peso, toast, setHtml, statusPill, paymentPill, orderTotal, tableTag, itemCount,
+        readyCount, menuHero, processImageFile, fmtDateTime } = S;
+
+      let menuFilter = 'All';
+      let menuSearch = '';
+      let ordersFilter = 'ALL';
+      let ordersSearch = '';
+
+      let dashDayFilter = 'TODAY';
+      let dashCustomDate = S.fmtDateKey(Date.now());
+      let ordersDayFilter = 'ALL';
+      let ordersCustomDate = S.fmtDateKey(Date.now());
+      let settingsResetDate = S.fmtDateKey(Date.now());
+      let isConnecting = false;
+
+      function filterOrdersByDay(list, filterType, customDate) {
+        if (filterType === 'ALL') return list;
+        const todayKey = S.fmtDateKey(Date.now());
+        const yestKey = S.fmtDateKey(Date.now() - 86400000);
+        return list.filter(o => {
+          const key = S.fmtDateKey(o.createdAt || o.created_at || Date.now());
+          if (filterType === 'TODAY') return key === todayKey;
+          if (filterType === 'YESTERDAY') return key === yestKey;
+          if (filterType === 'CUSTOM') return key === customDate;
+          return true;
+        });
+      }
+
+      const NAV_ITEMS = [
+        { key: 'dashboard', label: 'Dashboard', icon: 'layout-dashboard' },
+        { key: 'menu', label: 'Menu CMS', icon: 'utensils' },
+        { key: 'orders', label: 'Orders Log', icon: 'receipt' },
+        { key: 'staff', label: 'Staff PINs', icon: 'users' },
+        { key: 'settings', label: 'Settings', icon: 'settings' }
       ];
-
-      let currentUsername = '';
-      let currentPin = '';
-      let activeRoleKey = null;
 
       function render() {
         const app = document.getElementById('app');
         if (!app) return;
 
+        let mainContent = '';
+        switch (S.currentScreen) {
+          case 'menu': mainContent = viewMenuCMS(); break;
+          case 'orders': mainContent = viewOrdersCMS(); break;
+          case 'staff': mainContent = viewStaffCMS(); break;
+          case 'settings': mainContent = viewSettingsCMS(); break;
+          case 'dashboard':
+          default: mainContent = viewDashboard(); break;
+        }
+
         setHtml(app, `
-      <header class="navbar" role="banner">
-        <div class="navbar-inner">
-          <a href="index.html" class="brand" aria-label="Home">
-            <span class="brand-mark">F&amp;B</span>
-            <span class="brand-text">
-              <span class="brand-title">Food &amp; Beverage</span>
-              <span class="brand-sub">Restaurant Operations</span>
-            </span>
-          </a>
-          <div class="nav-actions">
-            <button class="icon-btn" onclick="Savor.toggleDark()" title="Toggle theme" aria-label="Toggle theme">
-              ${icon(S.state.dark ? 'sun' : 'moon', 'w-4 h-4')}
-            </button>
-          </div>
-        </div>
-      </header>
-
-      <main class="max-w-5xl mx-auto px-4 py-8 sm:py-12 flex-1">
-        <div class="text-center max-w-2xl mx-auto mb-8 sm:mb-12">
-          <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/10 text-amber-500 text-xs font-bold mb-4 border border-amber-500/20">
-            ${icon('lock', 'w-3.5 h-3.5')} Authorized Staff Sign-In
-          </div>
-          <h2 class="font-serif text-3xl sm:text-5xl font-bold tracking-tight mb-3">
-            Select Your Station
-          </h2>
-          <p class="text-sm sm:text-base text-muted leading-relaxed">
-            Tap your station to sign in. Staff stations require a registered username and 4-digit PIN. Master Admin PIN bypasses the username requirement.
-          </p>
-        </div>
-
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
-          ${ROLES.map(role => `
-            <div class="card p-5 sm:p-6 flex flex-col justify-between interactive cursor-pointer group" onclick="window.openLoginModal('${role.key}')">
-              <div>
-                <div class="flex justify-between items-start mb-4">
-                  <div class="w-12 h-12 rounded-2xl bg-surface-2 group-hover:bg-amber-500/15 group-hover:text-amber-500 transition-colors flex items-center justify-center text-ink">
-                    ${icon(role.icon, 'w-6 h-6')}
-                  </div>
-                  <span class="pill ${role.badgeColor}">${role.badge}</span>
-                </div>
-                <h3 class="font-serif font-bold text-xl group-hover:text-amber-500 transition-colors">${role.title}</h3>
-                <p class="text-xs text-muted mt-2 leading-relaxed">${role.subtitle}</p>
-              </div>
-
-              <div class="mt-6 pt-4 border-t border-border flex items-center justify-between">
-                <span class="inline-flex items-center gap-1.5 text-xs text-muted font-medium">
-                  ${icon('shield-check', 'w-3.5 h-3.5 text-emerald-500/80')} Secure Sign-in
-                </span>
-                <span class="text-xs font-bold text-amber-500 flex items-center gap-1 group-hover:translate-x-1 transition-transform">
-                  Enter Station &rarr;
-                </span>
-              </div>
-            </div>
-          `).join('')}
-        </div>
+      ${S.renderNav('Restaurant CMS Hub', S.currentScreen, NAV_ITEMS)}
+      <main class="max-w-7xl mx-auto px-4 py-6">
+        ${mainContent}
       </main>
-
-      <footer class="border-t border-border py-6 text-center text-xs text-muted">
-        ✦ Food &amp; Beverage — High-Performance Cloud &amp; Local Restaurant POS
-      </footer>
     `);
       }
 
-      window.openLoginModal = (roleKey) => {
-        activeRoleKey = roleKey;
-        currentPin = '';
-        currentUsername = '';
-        const role = ROLES.find(r => r.key === roleKey);
-        if (!role) return;
+      function viewDashboard() {
+        const allOrders = S.state.orders;
+        const orders = filterOrdersByDay(allOrders, dashDayFilter, dashCustomDate);
+        const liveOrders = orders.filter(o => o.status !== 'CANCELLED');
 
-        renderLoginModal();
-        if (roleKey !== 'admin') {
-          setTimeout(() => {
-            document.getElementById('login-username')?.focus();
-          }, 50);
-        }
-      };
-      window.openPinModal = window.openLoginModal;
+        const pending = orders.filter(o => o.status === 'PENDING');
+        const cooking = orders.filter(o => o.status === 'PREPARING');
+        const ready = orders.filter(o => o.status === 'READY');
+        const served = orders.filter(o => o.status === 'COMPLETED');
+        const paid = orders.filter(o => o.payment === 'PAID' && o.status !== 'CANCELLED');
+        const awaitingPay = orders.filter(o => o.status === 'COMPLETED' && o.payment !== 'PAID');
 
-      window.updateLoginUser = (val) => {
-        currentUsername = S.sanitizeUsername(val);
-      };
+        const totalRevenue = paid.reduce((sum, o) => sum + orderTotal(o), 0);
+        const awaitingRevenue = awaitingPay.reduce((sum, o) => sum + orderTotal(o), 0);
+        const avgCheck = paid.length > 0 ? (totalRevenue / paid.length) : 0;
 
-      function updatePinDotsDisplay() {
-        const container = document.getElementById('pin-dots-container');
-        if (!container) return;
-        const dotsHtml = [0, 1, 2, 3].map(i => {
-          const filled = i < currentPin.length;
-          return `<span class="pin-dot ${filled ? 'filled' : ''}"></span>`;
-        }).join('');
-        container.innerHTML = dotsHtml;
-      }
+        const salesTally = {};
+        liveOrders.forEach(o => {
+          (o.items || []).forEach(item => {
+            if (item.cancelled) return;
+            salesTally[item.name] = (salesTally[item.name] || 0) + (Number(item.qty) || 1);
+          });
+        });
+        const topDishes = Object.entries(salesTally).sort((a, b) => b[1] - a[1]).slice(0, 4);
 
-      function renderLoginModal() {
-        const role = ROLES.find(r => r.key === activeRoleKey);
-        if (!role) return;
-        const isAdminStation = (role.key === 'admin');
+        let dayFilterLabel = 'Today';
+        if (dashDayFilter === 'YESTERDAY') dayFilterLabel = 'Yesterday';
+        else if (dashDayFilter === 'CUSTOM') dayFilterLabel = S.fmtDate(new Date(dashCustomDate).getTime());
+        else if (dashDayFilter === 'ALL') dayFilterLabel = 'All Days';
 
-        const dots = [0, 1, 2, 3].map(i => {
-          const filled = i < currentPin.length;
-          return `<span class="pin-dot ${filled ? 'filled' : ''}"></span>`;
-        }).join('');
-
-        S.Modal.open(`
-      <div class="p-5 sm:p-6 max-w-sm mx-auto text-center relative" id="pin-pad-container">
-        <button type="button" class="absolute top-3 right-3 text-muted hover:text-ink transition-colors p-1" onclick="Savor.Modal.close()" title="Close">
-          ${icon('x', 'w-5 h-5')}
-        </button>
-
-        <div class="w-12 h-12 rounded-2xl bg-amber-500/15 text-amber-500 mx-auto flex items-center justify-center mb-2">
-          ${icon(role.icon, 'w-6 h-6')}
+        return `
+      <div class="flex flex-wrap justify-between items-center gap-4 mb-6">
+        <div>
+          <h2 class="font-serif text-2xl md:text-3xl font-bold tracking-tight">Executive Restaurant CMS</h2>
+          <p class="text-sm text-muted mt-1">Live service monitor, staff PIN management, and real-time cloud sync.</p>
         </div>
-        <h3 class="font-serif font-bold text-xl">${role.title}</h3>
-        <p class="text-xs text-muted mt-0.5 mb-3">
-          ${isAdminStation ? 'Enter 4-digit Master PIN to unlock Admin CMS' : `Enter your registered staff username and 4-digit PIN`}
-        </p>
+        <div class="flex items-center gap-2">
+          <button class="btn btn-ghost" onclick="Savor.navigate('settings')">
+            ${icon('database', 'w-4 h-4 text-amber-500')} Cloud Settings
+          </button>
+          <button class="btn btn-primary" onclick="Savor.navigate('orders')">
+            ${icon('receipt', 'w-4 h-4')} View Orders (${allOrders.length})
+          </button>
+        </div>
+      </div>
 
-        ${!isAdminStation ? `
-          <div class="mb-3 text-left">
-            <label class="block text-xs font-bold text-muted uppercase tracking-wider mb-1">Staff Username <span class="text-rose-500">*</span></label>
-            <div class="relative">
-              <span class="absolute left-3.5 top-3 text-xs text-muted font-mono font-bold">@</span>
-              <input type="text" id="login-username" class="input pl-8 py-2 text-sm font-mono tracking-wide" placeholder="Enter username" value="${esc(currentUsername)}" autocomplete="off" oninput="window.updateLoginUser(this.value)">
+      <div class="card p-4 mb-6 bg-surface-2/60 border border-border flex flex-wrap items-center justify-between gap-3">
+        <div class="flex flex-wrap items-center gap-2">
+          <span class="text-xs font-bold uppercase text-muted flex items-center gap-1.5 mr-1">
+            ${icon('calendar', 'w-4 h-4 text-amber-500')} View Day:
+          </span>
+          <button class="btn ${dashDayFilter === 'TODAY' ? 'btn-primary' : 'btn-ghost'} py-1.5 px-3 text-xs rounded-xl" onclick="window.setDashDayFilter('TODAY')">Today</button>
+          <button class="btn ${dashDayFilter === 'YESTERDAY' ? 'btn-primary' : 'btn-ghost'} py-1.5 px-3 text-xs rounded-xl" onclick="window.setDashDayFilter('YESTERDAY')">Yesterday</button>
+          <button class="btn ${dashDayFilter === 'ALL' ? 'btn-primary' : 'btn-ghost'} py-1.5 px-3 text-xs rounded-xl" onclick="window.setDashDayFilter('ALL')">All Days</button>
+        </div>
+        <div class="flex items-center gap-2.5">
+          <label class="text-xs text-muted font-bold uppercase">Specific Date:</label>
+          <input type="date" class="input py-1 px-2.5 text-xs font-mono w-auto" value="${dashCustomDate}" onchange="window.setDashCustomDate(this.value)">
+          <span class="pill pill-paid text-xs font-semibold">${dayFilterLabel} · ${liveOrders.length} orders</span>
+        </div>
+      </div>
+
+      <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <div class="card p-5">
+          <div class="flex justify-between items-center text-sm text-muted">
+            <span>Collected Revenue</span>
+            <span class="w-8 h-8 rounded-xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center">${icon('banknote', 'w-4 h-4')}</span>
+          </div>
+          <div class="text-3xl font-bold mt-3">${peso(totalRevenue)}</div>
+          <div class="text-xs text-muted mt-1">${paid.length} settled tickets (${dayFilterLabel})</div>
+        </div>
+
+        <div class="card p-5">
+          <div class="flex justify-between items-center text-sm text-muted">
+            <span>Awaiting Payment</span>
+            <span class="w-8 h-8 rounded-xl bg-amber-500/10 text-amber-500 flex items-center justify-center">${icon('clock', 'w-4 h-4')}</span>
+          </div>
+          <div class="text-3xl font-bold mt-3">${peso(awaitingRevenue)}</div>
+          <div class="text-xs text-muted mt-1">${awaitingPay.length} served tables unpaid</div>
+        </div>
+
+        <div class="card p-5">
+          <div class="flex justify-between items-center text-sm text-muted">
+            <span>Total Orders (${dayFilterLabel})</span>
+            <span class="w-8 h-8 rounded-xl bg-sky-500/10 text-sky-500 flex items-center justify-center">${icon('shopping-bag', 'w-4 h-4')}</span>
+          </div>
+          <div class="text-3xl font-bold mt-3">${liveOrders.length}</div>
+          <div class="text-xs text-muted mt-1">Avg check: ${peso(avgCheck)}</div>
+        </div>
+
+        <div class="card p-5">
+          <div class="flex justify-between items-center text-sm text-muted">
+            <span>Active in Service</span>
+            <span class="w-8 h-8 rounded-xl bg-orange-500/10 text-orange-500 flex items-center justify-center">${icon('flame', 'w-4 h-4')}</span>
+          </div>
+          <div class="text-3xl font-bold mt-3">${pending.length + cooking.length + ready.length}</div>
+          <div class="text-xs text-muted mt-1">${ready.length} ready at pass</div>
+        </div>
+      </div>
+
+      <div class="grid lg:grid-cols-3 gap-6 mb-6">
+        <div class="card p-5 lg:col-span-2">
+          <div class="flex justify-between items-center mb-4">
+            <h3 class="font-bold text-base flex items-center gap-2">
+              ${icon('activity', 'w-4 h-4 text-amber-500')} Floor &amp; Kitchen Flow
+            </h3>
+            <button class="text-xs text-amber-500 font-semibold" onclick="Savor.navigate('orders')">View Details &rarr;</button>
+          </div>
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
+            <div class="bg-surface-2 p-3.5 rounded-xl border border-border">
+              <span class="text-xs font-semibold text-muted block mb-1">Incoming</span>
+              <strong class="text-2xl font-bold text-sky-400">${pending.length}</strong>
+              <small class="text-[11px] text-muted block mt-1">Awaiting kitchen</small>
+            </div>
+            <div class="bg-surface-2 p-3.5 rounded-xl border border-border">
+              <span class="text-xs font-semibold text-muted block mb-1">Cooking</span>
+              <strong class="text-2xl font-bold text-amber-400">${cooking.length}</strong>
+              <small class="text-[11px] text-muted block mt-1">On the burners</small>
+            </div>
+            <div class="bg-surface-2 p-3.5 rounded-xl border border-border">
+              <span class="text-xs font-semibold text-muted block mb-1">At the Pass</span>
+              <strong class="text-2xl font-bold text-emerald-400">${ready.length}</strong>
+              <small class="text-[11px] text-muted block mt-1">Ready to serve</small>
+            </div>
+            <div class="bg-surface-2 p-3.5 rounded-xl border border-border">
+              <span class="text-xs font-semibold text-muted block mb-1">Served</span>
+              <strong class="text-2xl font-bold text-muted">${served.length}</strong>
+              <small class="text-[11px] text-muted block mt-1">Dining at tables</small>
             </div>
           </div>
-        ` : ''}
 
-        <div class="mb-3 text-left">
-          <label class="block text-xs font-bold text-muted uppercase tracking-wider mb-1">
-            ${isAdminStation ? '4-Digit Master PIN' : `4-Digit PIN`}
-          </label>
-          <div id="pin-dots-container" class="flex items-center justify-center gap-3.5 py-2.5 bg-surface-2 rounded-xl border border-border select-none">
-            ${dots}
+          <div class="mt-5 border-t border-border pt-4">
+            <h4 class="text-xs font-bold uppercase tracking-wider text-muted mb-3">Live Order Stream</h4>
+            <div class="space-y-2">
+              ${liveOrders.slice(0, 5).map(o => `
+                <div class="flex items-center justify-between p-2.5 rounded-xl bg-surface-2 border border-border/60 text-sm flex-wrap gap-2">
+                  <div class="flex items-center gap-3">
+                    <strong class="font-mono">${esc(o.code)}</strong>
+                    ${tableTag(o)}
+                    <span class="text-xs text-muted">${itemCount(o)} items</span>
+                  </div>
+                  <div class="flex items-center gap-2">
+                    <span class="font-bold">${peso(orderTotal(o))}</span>
+                    ${statusPill(o.status)}
+                    ${paymentPill(o)}
+                  </div>
+                </div>
+              `).join('') || '<p class="text-xs text-muted text-center py-4">No orders placed yet.</p>'}
+            </div>
           </div>
         </div>
 
-        <div class="grid grid-cols-3 gap-2 max-w-[280px] sm:max-w-[260px] mx-auto mb-4">
-          ${[1, 2, 3, 4, 5, 6, 7, 8, 9].map(num => `
-            <button type="button" class="h-14 sm:h-12 rounded-xl bg-surface-2 hover:bg-surface-3 active:scale-95 text-xl sm:text-lg font-bold font-mono transition-all border border-border/80 flex items-center justify-center" onclick="window.enterPinDigit('${num}')">
-              ${num}
-            </button>
-          `).join('')}
-          <button type="button" class="h-14 sm:h-12 rounded-xl bg-surface-2 hover:bg-surface-3 active:scale-95 text-xs font-semibold text-muted hover:text-ink transition-all border border-border/80 flex items-center justify-center" onclick="window.clearPin()">
-            Clear
-          </button>
-          <button type="button" class="h-14 sm:h-12 rounded-xl bg-surface-2 hover:bg-surface-3 active:scale-95 text-xl sm:text-lg font-bold font-mono transition-all border border-border/80 flex items-center justify-center" onclick="window.enterPinDigit('0')">
-            0
-          </button>
-          <button type="button" class="h-14 sm:h-12 rounded-xl bg-surface-2 hover:bg-surface-3 active:scale-95 text-muted hover:text-ink transition-all border border-border/80 flex items-center justify-center" onclick="window.backspacePin()" title="Backspace">
-            ${icon('delete', 'w-5 h-5')}
-          </button>
-        </div>
+        <div class="card p-5">
+          <h3 class="font-bold text-base mb-4 flex items-center gap-2">
+            ${icon('award', 'w-4 h-4 text-amber-500')} Top Ordered Dishes
+          </h3>
+          <div class="space-y-3">
+            ${topDishes.map(([name, qty], idx) => `
+              <div class="flex items-center justify-between p-3 rounded-xl bg-surface-2 border border-border">
+                <div class="flex items-center gap-3">
+                  <span class="w-6 h-6 rounded-lg bg-amber-500/15 text-amber-500 font-bold text-xs flex items-center justify-center">#${idx + 1}</span>
+                  <span class="font-medium text-sm">${esc(name)}</span>
+                </div>
+                <strong class="text-sm">${qty} sold</strong>
+              </div>
+            `).join('') || '<p class="text-xs text-muted py-6 text-center">Data will appear once orders are placed.</p>'}
+          </div>
 
-        <button type="button" class="btn btn-primary w-full justify-center py-2.5 text-xs font-bold" onclick="window.submitLogin()">
-          ${icon('log-in', 'w-4 h-4')} ${isAdminStation ? 'Unlock Admin Portal' : 'Sign In to Station'}
-        </button>
+          <div class="mt-6 p-4 rounded-xl bg-surface-2 border border-border text-xs">
+            <span class="font-bold block mb-1">Quick Links</span>
+            <div class="flex flex-col gap-1.5 mt-2">
+              <a href="waiter.html" target="_blank" class="text-amber-500 hover:underline flex items-center gap-1">${icon('external-link', 'w-3 h-3')} Open Waiter Floor Terminal</a>
+              <a href="kitchen.html" target="_blank" class="text-amber-500 hover:underline flex items-center gap-1">${icon('external-link', 'w-3 h-3')} Open Kitchen Display Pass</a>
+              <a href="cashier.html" target="_blank" class="text-amber-500 hover:underline flex items-center gap-1">${icon('external-link', 'w-3 h-3')} Open Cashier Terminal</a>
+            </div>
+          </div>
+        </div>
       </div>
-    `);
+    `;
       }
 
-      window.enterPinDigit = (digit) => {
-        const userEl = document.getElementById('login-username');
-        if (userEl) currentUsername = S.sanitizeUsername(userEl.value);
-
-        if (currentPin.length < 4) {
-          currentPin += String(digit);
-          updatePinDotsDisplay();
-
-          if (currentPin.length === 4) {
-            setTimeout(verifyAndLogin, 120);
-          }
-        }
-      };
-
-      window.backspacePin = () => {
-        const userEl = document.getElementById('login-username');
-        if (userEl) currentUsername = S.sanitizeUsername(userEl.value);
-
-        if (currentPin.length > 0) {
-          currentPin = currentPin.slice(0, -1);
-          updatePinDotsDisplay();
-        }
-      };
-
-      window.clearPin = () => {
-        const userEl = document.getElementById('login-username');
-        if (userEl) currentUsername = S.sanitizeUsername(userEl.value);
-
-        currentPin = '';
-        updatePinDotsDisplay();
-      };
-
-      window.submitLogin = () => {
-        verifyAndLogin();
-      };
-
-      function verifyAndLogin() {
-        S.loadLocalState();
-
-        const role = ROLES.find(r => r.key === activeRoleKey);
-        if (!role) return;
-
-        if (currentPin.length !== 4) {
-          toast('Please enter your complete 4-digit PIN.', 2500, 'alert');
-          return;
-        }
-
-        const adminAccount = S.state.accounts.find(a => a.role === 'Admin' || a.id === 'acc-admin') || {
-          id: 'acc-admin', name: 'Restaurant Owner', role: 'Admin', pin: '1212', status: 'Active'
-        };
-        const adminPin = String(adminAccount.pin || '1212').trim();
-
-        // 1. Admin Station login
-        if (activeRoleKey === 'admin') {
-          if (currentPin === adminPin || currentPin === '1212') {
-            const cleanAdmin = { ...adminAccount, role: 'Admin', pin: adminPin };
-            delete cleanAdmin.username;
-            delete cleanAdmin.password;
-            S.setSession(cleanAdmin);
-            S.Modal.close();
-            toast('Welcome, Restaurant Owner!', 2000, 'success');
-            setTimeout(() => {
-              window.location.href = role.page;
-            }, 150);
-            return;
-          } else {
-            shakeAndError('Incorrect Admin PIN. Please try again.');
-            return;
-          }
-        }
-
-        // 2. Master PIN override to enter any station as Admin (Bypasses username requirement)
-        if (currentPin === adminPin || currentPin === '1212') {
-          S.setSession({ id: 'acc-admin', name: 'Restaurant Owner', role: 'Admin', pin: adminPin });
-          S.Modal.close();
-          toast(`Entering ${role.title} as Owner`, 2000, 'success');
-          setTimeout(() => {
-            window.location.href = role.page;
-          }, 150);
-          return;
-        }
-
-        // 3. Strict Username Requirement for all staff stations
-        const domUser = document.getElementById('login-username');
-        const rawUser = (domUser?.value || currentUsername || '').trim();
-        const cleanUser = S.sanitizeUsername(rawUser).toLowerCase();
-
-        if (!cleanUser) {
-          shakeAndError('Staff username is required to sign in.');
-          return;
-        }
-
-        // 4. Individual Staff Account login by username and PIN
-        const matchedAccount = S.state.accounts.find(a => {
-          if (!a || !a.pin || !a.username) return false;
-          const pMatch = String(a.pin || '').trim() === currentPin;
-          const uMatch = S.sanitizeUsername(a.username).toLowerCase() === cleanUser;
-          return pMatch && uMatch;
+      function viewMenuCMS() {
+        const categories = ['All', 'Appetizer', 'Main Dish', 'Dessert', 'Drinks'];
+        const q = menuSearch.trim().toLowerCase();
+        const filtered = S.state.menu.filter(m => {
+          const matchCat = (menuFilter === 'All' || m.category === menuFilter);
+          const matchSearch = !q || m.name.toLowerCase().includes(q) || (m.ingredients || '').toLowerCase().includes(q);
+          return matchCat && matchSearch;
         });
 
-        if (!matchedAccount) {
-          shakeAndError(`Incorrect username or PIN for @${cleanUser}.`);
-          return;
-        }
+        return `
+      <div class="flex flex-wrap justify-between items-center gap-4 mb-6">
+        <div>
+          <h2 class="font-serif text-2xl font-bold tracking-tight">Menu &amp; Dish Catalog CMS</h2>
+          <p class="text-sm text-muted mt-1">Upload dish photos, edit prices, recipes, and toggle 86 availability in real-time.</p>
+        </div>
+        <button class="btn btn-primary" onclick="window.openDishModal()">
+          ${icon('plus', 'w-4 h-4')} Add New Dish
+        </button>
+      </div>
 
-        if (matchedAccount.status === 'Inactive') {
-          shakeAndError(`Staff account @${matchedAccount.username} is currently set to Inactive.`);
-          return;
-        }
+      <div class="flex flex-wrap items-center justify-between gap-3 mb-6">
+        <div class="flex items-center gap-1.5 overflow-x-auto pb-1">
+          ${categories.map(cat => `
+            <button class="btn ${menuFilter === cat ? 'btn-primary' : 'btn-ghost'} py-1.5 px-3.5 text-xs rounded-full whitespace-nowrap" onclick="window.setMenuCat('${cat}')">
+              ${cat} (${cat === 'All' ? S.state.menu.length : S.state.menu.filter(m => m.category === cat).length})
+            </button>
+          `).join('')}
+        </div>
+        <div class="w-full sm:w-64">
+          <input type="text" class="input py-1.5 px-3 text-xs" placeholder="Search dishes or ingredients..." value="${esc(menuSearch)}" oninput="window.setMenuSearch(this.value)">
+        </div>
+      </div>
 
-        function isRoleAllowed(stationKey, accountRole) {
-          const sKey = String(stationKey || '').toLowerCase().replace(/[\s_-]+/g, '');
-          const aRole = String(accountRole || '').toLowerCase().replace(/[\s_-]+/g, '');
-          if (aRole === 'admin') return true;
-          if (sKey === aRole) return true;
-          if (sKey === 'semiadmin' && (aRole === 'semiadmin' || aRole === 'floormanager' || aRole === 'manager')) return true;
-          if (sKey === 'floormanager' && (aRole === 'semiadmin' || aRole === 'floormanager' || aRole === 'manager')) return true;
-          return false;
-        }
+      <div class="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+        ${filtered.map(dish => `
+          <div class="card p-4 flex flex-col justify-between group ${!dish.available ? 'opacity-60 border-dashed' : ''}">
+            <div>
+              ${menuHero(dish, 'h-40')}
+              <div class="flex justify-between items-start mb-1">
+                <span class="text-xs text-amber-500 font-semibold uppercase tracking-wider">${esc(dish.category)}</span>
+                <button class="pill ${dish.available ? 'pill-paid' : 'pill-alert'} cursor-pointer text-[10px]" onclick="window.toggleDishAvailable('${dish.id}')" title="Toggle availability">
+                  ${dish.available ? 'Available' : '86 / Sold Out'}
+                </button>
+              </div>
+              <h4 class="font-bold text-base mt-1 group-hover:text-amber-500 transition-colors">${esc(dish.name)}</h4>
+              <p class="text-xs text-muted mt-1 line-clamp-2">${esc(dish.description || 'No description provided.')}</p>
+              ${dish.ingredients ? `<small class="text-[11px] text-muted/80 block mt-2 italic line-clamp-1">Ingredients: ${esc(dish.ingredients)}</small>` : ''}
+            </div>
+            <div class="mt-4 pt-3 border-t border-border flex items-center justify-between">
+              <strong class="text-base font-bold text-ink">${peso(dish.price)}</strong>
+              <div class="flex items-center gap-1">
+                <button class="icon-btn w-7 h-7 text-xs" onclick="window.openDishModal('${dish.id}')" title="Edit">${icon('pencil', 'w-3.5 h-3.5')}</button>
+                <button class="icon-btn w-7 h-7 text-xs text-rose-500 hover:bg-rose-500/10" onclick="window.deleteDish('${dish.id}')" title="Delete">${icon('trash-2', 'w-3.5 h-3.5')}</button>
+              </div>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+      ${filtered.length === 0 ? `<div class="card p-12 text-center text-muted mt-4">No dishes found.</div>` : ''}
+    `;
+      }
 
-        if (!isRoleAllowed(role.key, matchedAccount.role)) {
-          toast(`Access Denied: @${matchedAccount.username} is assigned to ${matchedAccount.role}, not this station.`, 3500, 'alert');
-          return;
-        }
+      function viewOrdersCMS() {
+        const allOrders = S.state.orders;
+        const dayOrders = filterOrdersByDay(allOrders, ordersDayFilter, ordersCustomDate);
+        const q = ordersSearch.trim().toLowerCase();
 
-        S.setSession(matchedAccount);
+        const filtered = dayOrders.filter(o => {
+          const matchFilter = (ordersFilter === 'ALL')
+            || (ordersFilter === 'ACTIVE' && (o.status === 'PENDING' || o.status === 'PREPARING' || o.status === 'READY'))
+            || (ordersFilter === 'PAID' && o.payment === 'PAID' && o.status !== 'CANCELLED')
+            || (ordersFilter === 'UNPAID' && o.payment !== 'PAID' && o.status !== 'CANCELLED')
+            || (ordersFilter === 'CANCELLED' && o.status === 'CANCELLED');
+          const matchSearch = !q || o.code.toLowerCase().includes(q) || (o.table || '').toLowerCase().includes(q) || (o.customer || '').toLowerCase().includes(q);
+          return matchFilter && matchSearch;
+        });
+
+        let dayLabel = 'All Days';
+        if (ordersDayFilter === 'TODAY') dayLabel = 'Today';
+        else if (ordersDayFilter === 'YESTERDAY') dayLabel = 'Yesterday';
+        else if (ordersDayFilter === 'CUSTOM') dayLabel = S.fmtDate(new Date(ordersCustomDate).getTime());
+
+        return `
+      <div class="flex flex-wrap justify-between items-center gap-4 mb-6">
+        <div>
+          <h2 class="font-serif text-2xl font-bold tracking-tight">Orders &amp; Audit Log</h2>
+          <p class="text-sm text-muted mt-1">Full audit history of all tickets, dish progress, and payment settlements per day.</p>
+        </div>
+        <span class="pill pill-paid text-xs font-semibold">${dayLabel} · ${filtered.length} tickets</span>
+      </div>
+
+      <div class="card p-4 mb-6 bg-surface-2/40 border border-border flex flex-wrap items-center justify-between gap-4">
+        <div class="flex flex-wrap items-center gap-3">
+          <div class="flex flex-wrap items-center gap-1 bg-surface-2 p-1 rounded-xl border border-border text-xs">
+            <span class="text-muted font-bold px-2 uppercase text-[11px]">${icon('calendar', 'w-3 h-3 inline mr-1 text-amber-500')} Day:</span>
+            <button class="btn ${ordersDayFilter === 'TODAY' ? 'btn-primary' : 'btn-ghost'} py-1 px-2.5 text-xs rounded-lg" onclick="window.setOrdersDayFilter('TODAY')">Today</button>
+            <button class="btn ${ordersDayFilter === 'YESTERDAY' ? 'btn-primary' : 'btn-ghost'} py-1 px-2.5 text-xs rounded-lg" onclick="window.setOrdersDayFilter('YESTERDAY')">Yesterday</button>
+            <button class="btn ${ordersDayFilter === 'ALL' ? 'btn-primary' : 'btn-ghost'} py-1 px-2.5 text-xs rounded-lg" onclick="window.setOrdersDayFilter('ALL')">All Days</button>
+            <input type="date" class="input py-0.5 px-2 text-xs font-mono ml-1 w-auto" value="${ordersCustomDate}" onchange="window.setOrdersCustomDate(this.value)">
+          </div>
+
+          <div class="flex flex-wrap items-center gap-1 bg-surface-2 p-1 rounded-xl border border-border text-xs">
+            ${['ALL', 'ACTIVE', 'PAID', 'UNPAID', 'CANCELLED'].map(f => `
+              <button class="btn ${ordersFilter === f ? 'btn-primary' : 'btn-ghost'} py-1 px-2.5 text-xs rounded-lg" onclick="window.setOrdersFilter('${f}')">
+                ${f}
+              </button>
+            `).join('')}
+          </div>
+        </div>
+
+        <div class="w-full sm:w-64">
+          <input type="text" class="input py-1.5 px-3 text-xs" placeholder="Search order code or table..." value="${esc(ordersSearch)}" oninput="window.setOrdersSearch(this.value)">
+        </div>
+      </div>
+
+      <div class="card overflow-hidden">
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-sm" data-mobile-cards>
+            <thead class="bg-surface-2 border-b border-border text-xs uppercase text-muted">
+              <tr>
+                <th class="p-3.5">Code</th>
+                <th class="p-3.5">Table / Guest</th>
+                <th class="p-3.5">Items</th>
+                <th class="p-3.5">Total</th>
+                <th class="p-3.5">Status</th>
+                <th class="p-3.5">Payment</th>
+                <th class="p-3.5">Time</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-border">
+              ${filtered.map(o => `
+                <tr class="hover:bg-surface-2/50 transition-colors ${o.status === 'CANCELLED' ? 'opacity-60' : ''}">
+                  <td class="p-3.5 font-mono font-bold" data-label="Code">${esc(o.code)}</td>
+                  <td class="p-3.5" data-label="Table">${tableTag(o) || '<span class="text-muted text-xs">—</span>'}</td>
+                  <td class="p-3.5 max-w-xs truncate text-xs" data-label="Items">${esc((o.items || []).filter(i => !i.cancelled).map(i => `${i.qty}× ${i.name}`).join(' · '))}</td>
+                  <td class="p-3.5 font-bold" data-label="Total">${peso(orderTotal(o))}</td>
+                  <td class="p-3.5" data-label="Status">${statusPill(o.status)}</td>
+                  <td class="p-3.5" data-label="Payment">${paymentPill(o)}</td>
+                  <td class="p-3.5 text-xs text-muted" data-label="Time">${fmtDateTime(o.createdAt)}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+        ${filtered.length === 0 ? `<p class="p-8 text-center text-xs text-muted">No orders found for ${dayLabel}.</p>` : ''}
+      </div>
+    `;
+      }
+
+      function viewStaffCMS() {
+        const accounts = S.state.accounts;
+        return `
+      <div class="flex flex-wrap justify-between items-center gap-4 mb-6">
+        <div>
+          <h2 class="font-serif text-2xl font-bold tracking-tight">Staff &amp; 4-Digit PIN Access CMS</h2>
+          <p class="text-sm text-muted mt-1">Manage staff accounts. Usernames are names only. PINs are 4 digits for station sign-in.</p>
+        </div>
+        <button class="btn btn-primary" onclick="window.openStaffModal()">
+          ${icon('user-plus', 'w-4 h-4')} Add Staff Account
+        </button>
+      </div>
+
+      <div class="card overflow-hidden">
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-sm" data-mobile-cards>
+            <thead class="bg-surface-2 border-b border-border text-xs uppercase text-muted">
+              <tr>
+                <th class="p-4">Staff Member</th>
+                <th class="p-4">Username</th>
+                <th class="p-4">Role</th>
+                <th class="p-4">PIN</th>
+                <th class="p-4">Status</th>
+                <th class="p-4 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-border">
+              ${accounts.map(acc => {
+          const isAdminAcc = (acc.role === 'Admin' || acc.id === 'acc-admin' || !acc.username || acc.username === 'admin');
+          return `
+                <tr class="hover:bg-surface-2/40 transition-colors">
+                  <td class="p-4 font-bold" data-label="Staff">
+                    <div class="flex items-center gap-2.5">
+                      <span class="w-8 h-8 rounded-full bg-amber-500/15 text-amber-500 flex items-center justify-center font-serif text-sm flex-shrink-0">
+                        ${(acc.name || acc.username || 'A').charAt(0).toUpperCase()}
+                      </span>
+                      <div>
+                        <span>${esc(acc.name || (isAdminAcc ? 'Restaurant Owner / Admin' : acc.username))}</span>
+                        ${isAdminAcc ? '<span class="text-[10px] text-amber-500 block font-normal">Master Owner · Sign-in PIN Only</span>' : ''}
+                      </div>
+                    </div>
+                  </td>
+                  <td class="p-4 font-mono text-xs text-amber-400" data-label="Username">
+                    ${isAdminAcc ? '<span class="text-muted text-xs italic font-sans">PIN Only</span>' : '@' + esc(acc.username)}
+                  </td>
+                  <td class="p-4" data-label="Role"><span class="pill pill-info">${esc(acc.role)}</span></td>
+                  <td class="p-4 font-mono font-bold text-amber-400 text-base tracking-widest" data-label="PIN">${esc(acc.pin || '1212')}</td>
+                  <td class="p-4" data-label="Status"><span class="pill ${acc.status === 'Active' ? 'pill-paid' : 'pill-alert'}">${acc.status || 'Active'}</span></td>
+                  <td class="p-4 text-right" data-label="">
+                    <div class="flex items-center justify-end gap-1.5">
+                      <button class="btn btn-ghost py-1 px-2.5 text-xs" onclick="window.openStaffModal('${acc.id}')">${isAdminAcc ? 'Change PIN' : 'Edit'}</button>
+                      ${!isAdminAcc ? `<button class="btn btn-ghost py-1 px-2.5 text-xs text-rose-500 hover:bg-rose-500/10" onclick="window.deleteStaff('${acc.id}')">Delete</button>` : ''}
+                    </div>
+                  </td>
+                </tr>
+              `;
+        }).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    `;
+      }
+
+      function viewSettingsCMS() {
+        return `
+      <div class="max-w-3xl">
+        <h2 class="font-serif text-2xl font-bold tracking-tight mb-1">System &amp; Cloud Settings</h2>
+        <p class="text-sm text-muted mb-6">Configure online cloud databases, restaurant branding, and backups.</p>
+
+        <div class="card p-6 mb-6">
+          <div class="flex flex-wrap justify-between items-start gap-3 mb-4">
+            <div>
+              <h3 class="text-lg font-bold flex items-center gap-2">
+                ${icon('database', 'w-5 h-5 text-amber-500')} Supabase Cloud Database
+              </h3>
+              <p class="text-xs text-muted mt-1">Multi-user real-time PostgreSQL database hosted in the cloud.</p>
+            </div>
+            <span class="pill ${S.state.net === 'realtime' ? 'pill-paid' : 'pill-unpaid'}">
+              ${S.state.net === 'realtime' ? '🟢 Supabase Realtime Active' : '⚪ Local Storage Mode'}
+            </span>
+          </div>
+
+          <div class="space-y-4">
+            <div>
+              <label class="block text-xs font-bold uppercase text-muted mb-1">Supabase Project URL</label>
+              <input type="text" id="set-url" class="input text-xs" value="${esc(S.CONFIG.SUPABASE_URL)}" placeholder="https://xyzcompany.supabase.co">
+            </div>
+            <div>
+              <label class="block text-xs font-bold uppercase text-muted mb-1">Supabase Anon Key</label>
+              <textarea id="set-key" class="input font-mono text-xs" rows="2">${esc(S.CONFIG.SUPABASE_KEY)}</textarea>
+            </div>
+            <div class="flex flex-wrap gap-2 pt-2">
+              <button class="btn btn-primary" onclick="window.saveSettingsDb()">
+                ${icon('check', 'w-4 h-4')} Save &amp; Connect Cloud
+              </button>
+              <button class="btn btn-ghost" onclick="Savor.copySqlSchema()">
+                ${icon('copy', 'w-4 h-4')} Copy Supabase SQL Schema
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card p-6 mb-6 border border-rose-500/30 bg-surface-2/40">
+          <div class="flex flex-wrap justify-between items-start gap-4 mb-4">
+            <div>
+              <div class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-rose-500/10 text-rose-500 text-xs font-bold mb-2 border border-rose-500/20">
+                ${icon('calendar-x', 'w-3.5 h-3.5')} Daily Service Management
+              </div>
+              <h3 class="text-lg font-bold">Reset Day's Orders</h3>
+              <p class="text-xs text-muted mt-1 leading-relaxed max-w-xl">
+                Reset and clear all active orders for a specific day. Tables return to AVAILABLE. Menu and staff are untouched.
+              </p>
+            </div>
+          </div>
+
+          <div class="p-4 bg-surface rounded-xl border border-border flex flex-wrap items-center justify-between gap-4">
+            <div class="flex flex-wrap items-center gap-3">
+              <label class="text-xs font-bold uppercase text-muted">Select Day:</label>
+              <input type="date" id="reset-day-input" class="input py-1.5 px-3 text-xs font-mono max-w-[170px] w-auto" value="${settingsResetDate}" onchange="window.setSettingsResetDate(this.value)">
+              <button type="button" class="btn ${settingsResetDate === S.fmtDateKey(Date.now()) ? 'btn-primary' : 'btn-ghost'} py-1 px-2.5 text-xs rounded-lg" onclick="window.setSettingsResetDate('${S.fmtDateKey(Date.now())}')">Today</button>
+              <button type="button" class="btn ${settingsResetDate === S.fmtDateKey(Date.now() - 86400000) ? 'btn-primary' : 'btn-ghost'} py-1 px-2.5 text-xs rounded-lg" onclick="window.setSettingsResetDate('${S.fmtDateKey(Date.now() - 86400000)}')">Yesterday</button>
+              <span class="pill pill-info text-xs font-semibold">${S.state.orders.filter(o => S.fmtDateKey(o.createdAt || o.created_at || Date.now()) === settingsResetDate).length} order(s)</span>
+            </div>
+            <button type="button" class="btn bg-rose-600 hover:bg-rose-700 text-white font-semibold py-2 px-4 text-xs shadow-md shadow-rose-600/20 flex items-center gap-1.5" onclick="window.promptResetDayOrders('${settingsResetDate}')">
+              ${icon('trash-2', 'w-4 h-4')} Reset Orders For This Day
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+      }
+
+      window.setMenuCat = (cat) => { menuFilter = cat; render(); };
+      window.setMenuSearch = (val) => { menuSearch = val; render(); };
+      window.setOrdersFilter = (f) => { ordersFilter = f; render(); };
+      window.setOrdersSearch = (val) => { ordersSearch = val; render(); };
+      window.setDashDayFilter = (f) => { dashDayFilter = f; render(); };
+      window.setDashCustomDate = (val) => { dashDayFilter = 'CUSTOM'; dashCustomDate = val; render(); };
+      window.setOrdersDayFilter = (f) => { ordersDayFilter = f; render(); };
+      window.setOrdersCustomDate = (val) => { ordersDayFilter = 'CUSTOM'; ordersCustomDate = val; render(); };
+      window.setSettingsResetDate = (val) => { settingsResetDate = val || S.fmtDateKey(Date.now()); render(); };
+
+      window.toggleDishAvailable = async (id) => {
+        const dish = S.state.menu.find(m => m.id === id);
+        if (!dish) return;
+        dish.available = !dish.available;
+        await S.Data.saveMenuItem(dish);
+        toast(dish.available ? `${dish.name} marked Available` : `${dish.name} marked 86`, 2500, dish.available ? 'success' : 'alert');
+        render();
+      };
+
+      window.deleteDish = (id) => {
+        const dish = S.state.menu.find(m => m.id === id);
+        const dishName = dish ? dish.name : 'this menu dish';
+        S.Modal.open(`
+      <div class="p-6 max-w-sm mx-auto text-center">
+        <div class="w-14 h-14 rounded-2xl bg-rose-500/15 text-rose-500 border border-rose-500/30 mx-auto flex items-center justify-center mb-4">
+          ${icon('trash-2', 'w-7 h-7')}
+        </div>
+        <h3 class="font-serif font-bold text-xl">Remove Dish?</h3>
+        <p class="text-xs text-muted mt-2 leading-relaxed">Remove <b>${esc(dishName)}</b> from the catalog?</p>
+        <div class="flex gap-2.5 mt-6">
+          <button type="button" class="btn btn-ghost flex-1 justify-center py-2 text-xs" onclick="Savor.Modal.close()">Cancel</button>
+          <button type="button" class="btn bg-rose-600 hover:bg-rose-700 text-white font-semibold flex-1 justify-center py-2 text-xs" onclick="window.confirmDeleteDish('${id}')">
+            ${icon('trash-2', 'w-3.5 h-3.5')} Remove
+          </button>
+        </div>
+      </div>
+    `);
+      };
+
+      window.confirmDeleteDish = async (id) => {
+        await S.Data.deleteMenuItem(id);
         S.Modal.close();
-        toast(`Welcome, ${matchedAccount.name || '@' + matchedAccount.username}!`, 2000, 'success');
-        setTimeout(() => {
-          window.location.href = role.page;
-        }, 150);
-      }
+        toast('Dish removed.', 2500, 'info');
+        render();
+      };
 
-      function shakeAndError(msg) {
-        currentPin = '';
-        const padEl = document.getElementById('pin-pad-container');
-        if (padEl) {
-          padEl.classList.add('animate-shake');
-          setTimeout(() => padEl.classList.remove('animate-shake'), 450);
-        }
-        updatePinDotsDisplay();
-        toast(msg, 3200, 'alert');
-      }
+      window.openDishModal = (id = null) => {
+        const item = id ? S.state.menu.find(m => m.id === id) : null;
+        const isEdit = !!item;
+        let uploadImg = item?.image || '';
 
-      window.addEventListener('keydown', (e) => {
-        const modalBackdrop = document.getElementById('modal-backdrop');
-        if (!modalBackdrop || !modalBackdrop.classList.contains('show')) return;
-        if (!activeRoleKey) return;
+        S.Modal.open(`
+      <div class="p-6 max-w-lg mx-auto">
+        <div class="flex justify-between items-center mb-4">
+          <h3 class="font-serif font-bold text-xl">${isEdit ? 'Edit Dish' : 'Add New Dish'}</h3>
+          <button class="btn btn-ghost p-1.5" onclick="Savor.Modal.close()">${icon('x', 'w-4 h-4')}</button>
+        </div>
+        <form onsubmit="window.saveDishForm(event, '${id || ''}')" class="space-y-3.5">
+          <div>
+            <label class="block text-xs font-bold text-muted mb-1.5">Dish Photo</label>
+            <div class="flex items-center gap-4 p-3 bg-surface-2 rounded-xl border border-border">
+              <div id="dish-img-preview" class="w-20 h-20 rounded-xl bg-surface-3 overflow-hidden flex items-center justify-center text-3xl flex-shrink-0 border border-border">
+                ${uploadImg ? `<img src="${esc(uploadImg)}" class="w-full h-full object-cover">` : icon('utensils', 'w-8 h-8 text-muted/60')}
+              </div>
+              <div class="flex-1 space-y-2">
+                <div class="flex items-center gap-2">
+                  <label class="btn btn-primary py-1.5 px-3 text-xs cursor-pointer">
+                    ${icon('camera', 'w-3.5 h-3.5')} Upload
+                    <input type="file" accept="image/*" class="hidden" onchange="window.handleDishImage(event)">
+                  </label>
+                </div>
+                <input type="text" id="dish-img-url" class="input py-1 text-xs" placeholder="Or image URL" value="${esc(uploadImg)}" oninput="window.setDishImageUrl(this.value)">
+              </div>
+            </div>
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-muted mb-1">Dish Name *</label>
+            <input type="text" id="dish-name" required class="input text-xs" value="${esc(item?.name || '')}" placeholder="e.g. Crispy Calamari">
+          </div>
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs font-bold text-muted mb-1">Category *</label>
+              <select id="dish-category" class="input text-xs">
+                ${['Appetizer', 'Main Dish', 'Dessert', 'Drinks'].map(c => `<option value="${c}" ${item?.category === c ? 'selected' : ''}>${c}</option>`).join('')}
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-muted mb-1">Price (₱) *</label>
+              <input type="number" id="dish-price" step="0.01" min="0" required class="input text-xs" value="${item?.price || ''}" placeholder="280">
+            </div>
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-muted mb-1">Description</label>
+            <textarea id="dish-desc" rows="2" class="input text-xs">${esc(item?.description || '')}</textarea>
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-muted mb-1">Ingredients (comma separated)</label>
+            <input type="text" id="dish-ingr" class="input text-xs" value="${esc(item?.ingredients || '')}">
+          </div>
+          <div class="flex items-center gap-2 pt-1">
+            <input type="checkbox" id="dish-available" ${item?.available !== false ? 'checked' : ''} class="w-4 h-4 rounded text-amber-500">
+            <label for="dish-available" class="text-xs font-bold">In stock &amp; available</label>
+          </div>
+          <div class="flex gap-2 pt-3">
+            <button type="submit" class="btn btn-primary flex-1 justify-center">${icon('check', 'w-4 h-4')} Save</button>
+            <button type="button" class="btn btn-ghost" onclick="Savor.Modal.close()">Cancel</button>
+          </div>
+        </form>
+      </div>
+    `);
 
-        const userInput = document.getElementById('login-username');
-        if (document.activeElement === userInput) {
-          if (e.key === 'Enter' || e.key === 'Tab') {
-            e.preventDefault();
-            userInput.blur();
-            if (currentPin.length === 4) verifyAndLogin();
+        window.handleDishImage = async (e) => {
+          const file = e.target.files && e.target.files[0];
+          if (!file) return;
+          try {
+            const dataUrl = await S.processImageFile(file);
+            uploadImg = dataUrl;
+            const preview = document.getElementById('dish-img-preview');
+            const urlInput = document.getElementById('dish-img-url');
+            if (preview) preview.innerHTML = `<img src="${dataUrl}" class="w-full h-full object-cover">`;
+            if (urlInput) urlInput.value = dataUrl;
+            toast('Photo ready', 1500, 'success');
+          } catch (err) { toast('Image failed: ' + err.message, 3000, 'alert'); }
+        };
+        window.setDishImageUrl = (val) => {
+          uploadImg = val.trim();
+          const preview = document.getElementById('dish-img-preview');
+          if (preview) {
+            if (uploadImg) preview.innerHTML = `<img src="${esc(uploadImg)}" class="w-full h-full object-cover">`;
+            else preview.innerHTML = icon('utensils', 'w-8 h-8 text-muted/60');
           }
+        };
+        window.saveDishForm = async (e, id) => {
+          e.preventDefault();
+          const name = document.getElementById('dish-name').value.trim();
+          const category = document.getElementById('dish-category').value;
+          const price = parseFloat(document.getElementById('dish-price').value) || 0;
+          const description = document.getElementById('dish-desc').value.trim();
+          const ingredients = document.getElementById('dish-ingr').value.trim();
+          const available = document.getElementById('dish-available').checked;
+          const image = uploadImg || document.getElementById('dish-img-url')?.value.trim() || '';
+          const dish = { id: id || S.uid('dish'), name, category, price, description, ingredients, available, image, emoji: '' };
+          await S.Data.saveMenuItem(dish);
+          S.Modal.close();
+          toast(`Saved "${name}"`, 3000, 'success');
+          menuFilter = 'All';
+          render();
+        };
+      };
+
+      window.openStaffModal = (id = null) => {
+        const acc = id ? S.state.accounts.find(a => a.id === id) : null;
+        const isAdminAcc = acc && (acc.role === 'Admin' || acc.id === 'acc-admin' || !acc.username || acc.username === 'admin');
+
+        S.Modal.open(`
+      <div class="p-6 max-w-sm mx-auto">
+        <div class="flex justify-between items-center mb-4">
+          <h3 class="font-serif font-bold text-xl">${isAdminAcc ? 'Change Admin PIN' : (acc ? 'Edit Staff' : 'Add Staff')}</h3>
+          <button class="btn btn-ghost p-1.5" onclick="Savor.Modal.close()">${icon('x', 'w-4 h-4')}</button>
+        </div>
+        <form onsubmit="window.saveStaffForm(event, '${id || ''}')" class="space-y-4">
+          ${!isAdminAcc ? `
+            <div>
+              <label class="block text-xs font-bold text-muted mb-1">Username (letters only) *</label>
+              <div class="relative">
+                <span class="absolute left-3 top-3 text-xs text-muted font-mono">@</span>
+                <input type="text" id="staff-user" required class="input text-xs pl-7 font-mono" value="${esc(acc?.username || '')}" oninput="this.value = S.sanitizeUsername(this.value)">
+              </div>
+            </div>
+          ` : ''}
+          <div>
+            <label class="block text-xs font-bold text-muted mb-1">${isAdminAcc ? 'Master' : 'Station'} PIN *</label>
+            <input type="text" id="staff-pin" required maxlength="4" pattern="[0-9]{4}" class="input font-mono text-center text-xl tracking-[0.4em]" value="${esc(acc?.pin || (isAdminAcc ? '1212' : ''))}" placeholder="••••" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
+          </div>
+          ${!isAdminAcc ? `
+            <div class="grid grid-cols-2 gap-2">
+              <div>
+                <label class="block text-xs font-bold text-muted mb-1">Role</label>
+                <select id="staff-role" class="input text-xs">
+                  <option value="Cashier" ${acc?.role === 'Cashier' ? 'selected' : ''}>Cashier</option>
+                  <option value="Waiter" ${acc?.role === 'Waiter' ? 'selected' : ''}>Waiter</option>
+                  <option value="Kitchen" ${acc?.role === 'Kitchen' ? 'selected' : ''}>Kitchen</option>
+                  <option value="Semi Admin" ${acc?.role === 'Semi Admin' ? 'selected' : ''}>Semi Admin</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-xs font-bold text-muted mb-1">Status</label>
+                <select id="staff-status" class="input text-xs">
+                  <option value="Active" ${acc?.status !== 'Inactive' ? 'selected' : ''}>Active</option>
+                  <option value="Inactive" ${acc?.status === 'Inactive' ? 'selected' : ''}>Inactive</option>
+                </select>
+              </div>
+            </div>
+          ` : ''}
+          <div class="flex gap-2 pt-2">
+            <button type="submit" class="btn btn-primary flex-1 justify-center">${icon('check', 'w-4 h-4')} Save</button>
+            <button type="button" class="btn btn-ghost" onclick="Savor.Modal.close()">Cancel</button>
+          </div>
+        </form>
+      </div>
+    `);
+      };
+
+      window.saveStaffForm = async (e, id) => {
+        e.preventDefault();
+        const pin = document.getElementById('staff-pin').value.trim();
+        if (pin.length !== 4) { toast('PIN must be 4 digits!', 3000, 'alert'); return; }
+        const acc = id ? S.state.accounts.find(a => a.id === id) : null;
+        const isAdminAcc = acc && (acc.role === 'Admin' || acc.id === 'acc-admin' || !acc.username || acc.username === 'admin');
+        if (isAdminAcc) {
+          acc.pin = pin; acc.role = 'Admin'; acc.status = 'Active';
+          delete acc.username; delete acc.password;
+          await S.Data.saveAccount(acc);
+          S.Modal.close();
+          toast(`Admin PIN updated to ${pin}`, 3000, 'success');
+          render();
           return;
         }
+        const username = S.sanitizeUsername(document.getElementById('staff-user').value);
+        const role = document.getElementById('staff-role').value;
+        const status = document.getElementById('staff-status').value;
+        const name = username.charAt(0).toUpperCase() + username.slice(1);
+        if (!username) { toast('Username required', 3000, 'alert'); return; }
+        const existing = S.state.accounts.find(a => a.id !== (id || '') && a.username && a.username.toLowerCase() === username.toLowerCase());
+        if (existing) { toast(`@${username} already exists`, 3500, 'alert'); return; }
+        const account = { id: id || S.uid('acc'), name, username, pin, role, status };
+        await S.Data.saveAccount(account);
+        S.Modal.close();
+        toast(`@${username} (${role}) saved`, 3000, 'success');
+        render();
+      };
 
-        if (e.key >= '0' && e.key <= '9') {
-          window.enterPinDigit(e.key);
-        } else if (e.key === 'Backspace') {
-          window.backspacePin();
-        } else if (e.key === 'Enter') {
-          window.submitLogin();
-        } else if (e.key === 'Escape') {
-          S.Modal.close();
-        }
-      });
+      window.deleteStaff = (id) => {
+        const acc = S.state.accounts.find(a => a.id === id);
+        const uname = acc ? acc.username : 'this staff';
+        S.Modal.open(`
+      <div class="p-6 max-w-sm mx-auto text-center">
+        <div class="w-12 h-12 rounded-2xl bg-rose-500/15 text-rose-500 border border-rose-500/30 mx-auto flex items-center justify-center mb-3">
+          ${icon('user-minus', 'w-6 h-6')}
+        </div>
+        <h3 class="font-serif font-bold text-lg">Delete Staff?</h3>
+        <p class="text-xs text-muted mt-2">Remove <b>@${esc(uname)}</b>?</p>
+        <div class="flex gap-2.5 mt-5">
+          <button type="button" class="btn btn-ghost flex-1 justify-center py-2 text-xs" onclick="Savor.Modal.close()">Cancel</button>
+          <button type="button" class="btn bg-rose-600 hover:bg-rose-700 text-white font-semibold flex-1 justify-center py-2 text-xs" onclick="window.confirmDeleteStaff('${id}')">
+            ${icon('trash-2', 'w-3.5 h-3.5')} Delete
+          </button>
+        </div>
+      </div>
+    `);
+      };
 
-      // Auto-open station modal if redirected (e.g. ?need_login=waiter)
-      try {
-        const params = new URLSearchParams(window.location.search);
-        const need = params.get('need_login') || params.get('unauthorized');
-        if (need) {
-          const match = ROLES.find(r => r.key === need || r.key.replace('_', '') === need.replace('_', ''));
-          if (match) {
-            setTimeout(() => window.openLoginModal(match.key), 120);
-          }
-        }
-      } catch (e) { }
+      window.confirmDeleteStaff = async (id) => {
+        await S.Data.deleteAccount(id);
+        S.Modal.close();
+        toast('Staff deleted.', 2000, 'info');
+        render();
+      };
 
-      S.boot({ role: 'guest', defaultScreen: 'portals', render: render });
+      window.promptResetDayOrders = (targetDateKey) => {
+        targetDateKey = targetDateKey || settingsResetDate || S.fmtDateKey(Date.now());
+        const dayOrders = S.state.orders.filter(o => S.fmtDateKey(o.createdAt || o.created_at || Date.now()) === targetDateKey);
+        const isTargetToday = (targetDateKey === S.fmtDateKey(Date.now()));
+        const readableDate = isTargetToday ? 'Today (' + targetDateKey + ')' : targetDateKey;
+        const totalDaySales = dayOrders.reduce((sum, o) => sum + S.orderTotal(o), 0);
+        S.Modal.open(`
+      <div class="p-6 max-w-md mx-auto text-center">
+        <div class="w-14 h-14 rounded-2xl bg-rose-500/15 text-rose-500 border border-rose-500/30 mx-auto flex items-center justify-center mb-4">
+          ${icon('alert-triangle', 'w-7 h-7')}
+        </div>
+        <h3 class="font-serif font-bold text-2xl">Reset Orders for ${esc(readableDate)}?</h3>
+        <p class="text-xs text-muted mt-2 leading-relaxed">
+          Permanently clear all <strong class="text-rose-500">${dayOrders.length} order(s)</strong> on this day.
+        </p>
+        <div class="p-3.5 my-4 bg-surface-2 rounded-xl border border-border text-left text-xs space-y-1.5">
+          <div class="flex justify-between"><span class="text-muted">Target day:</span><strong class="font-mono">${esc(targetDateKey)}</strong></div>
+          <div class="flex justify-between"><span class="text-muted">Orders:</span><strong class="font-mono text-rose-400">${dayOrders.length}</strong></div>
+          <div class="flex justify-between"><span class="text-muted">Total sales:</span><strong class="font-mono text-amber-500">${S.peso(totalDaySales)}</strong></div>
+        </div>
+        <div class="flex gap-2.5">
+          <button type="button" class="btn btn-ghost flex-1 justify-center py-2 text-xs" onclick="Savor.Modal.close()">Cancel</button>
+          <button type="button" class="btn bg-rose-600 hover:bg-rose-700 text-white font-semibold flex-1 justify-center py-2 text-xs" onclick="window.executeResetDayOrders('${targetDateKey}')">
+            ${icon('trash-2', 'w-4 h-4')} Reset ${dayOrders.length}
+          </button>
+        </div>
+      </div>
+    `);
+      };
+
+      window.executeResetDayOrders = async (targetDateKey) => {
+        const res = await S.Data.deleteOrdersByDay(targetDateKey);
+        S.Modal.close();
+        toast(`Reset complete: ${res.count} order(s) cleared.`, 3500, 'success');
+        render();
+      };
+
+      window.saveSettingsDb = () => {
+        if (isConnecting) return;
+        isConnecting = true;
+        const url = document.getElementById('set-url')?.value.trim() || '';
+        const key = document.getElementById('set-key')?.value.trim() || '';
+        S.CONFIG.SUPABASE_URL = S.cleanSupabaseUrl(url);
+        S.CONFIG.SUPABASE_KEY = key;
+        S.safeSet('savor.supabase_url', S.CONFIG.SUPABASE_URL);
+        S.safeSet('savor.supabase_key', S.CONFIG.SUPABASE_KEY);
+        toast('Connecting...', 3000, 'info');
+        S.initSupabase().then(() => {
+          isConnecting = false;
+          toast('Connected!', 3000, 'success');
+          render();
+        }).catch(() => {
+          isConnecting = false;
+          toast('Failed to connect', 3000, 'alert');
+          render();
+        });
+      };
+
+      S.boot({ role: 'admin', defaultScreen: 'dashboard', render: render });
     })();
   </script>
 </body>
