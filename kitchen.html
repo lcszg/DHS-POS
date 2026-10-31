@@ -8,9 +8,7 @@
   <title>Food &amp; Beverage — Kitchen Display (KDS)</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link
-    href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400..700;1,9..40,400..700&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap"
-    rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400..700;1,9..40,400..700&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap" rel="stylesheet">
   <script>tailwind.config = { darkMode: 'class', theme: { extend: { colors: { bg: 'var(--bg)', surface: 'var(--surface)', 'surface-2': 'var(--surface-2)', 'surface-3': 'var(--surface-3)', border: 'var(--border)', ink: 'var(--ink)', muted: 'var(--text-muted)', primary: 'var(--primary)' } } } };</script>
   <script src="https://cdn.tailwindcss.com/3.4.17"></script>
   <script src="https://cdn.jsdelivr.net/npm/lucide@0.577.0/dist/umd/lucide.min.js"></script>
@@ -27,8 +25,9 @@
       if (!session) return;
       S.session = session;
 
-      const { $, esc, icon, peso, toast, setHtml, statusPill, orderTotal, hasMeta, orderMetaText,
-        tableTag, itemCount, readyCount, unreadyCount, servedCount, itemSummary, allNotes, fmtTime } = S;
+      const { esc, icon, peso, toast, setHtml, statusPill, orderTotal, hasMeta, orderMetaText,
+        tableTag, itemCount, readyCount, unreadyCount, servedCount, itemSummary, allNotes, fmtTime,
+        activeItemCount, cancelledItemsCount } = S;
 
       const NAV_ITEMS = [
         { key: 'active', label: 'Live Kitchen Pass', icon: 'flame' },
@@ -53,11 +52,11 @@
         else content = renderPass(active, pending);
 
         setHtml(app, `
-      ${S.renderNav('Kitchen Display System (KDS)', S.currentScreen, NAV_ITEMS)}
-      <main class="max-w-7xl mx-auto px-4 py-6">
-        ${content}
-      </main>
-    `);
+          ${S.renderNav('Kitchen Display System (KDS)', S.currentScreen, NAV_ITEMS)}
+          <main class="max-w-7xl mx-auto px-4 py-6">
+            ${content}
+          </main>
+        `);
       }
 
       /* ==================== LIVE KITCHEN PASS ==================== */
@@ -65,77 +64,77 @@
         const list = [...active].sort((a, b) => a.createdAt - b.createdAt);
 
         return `
-      <div class="flex flex-wrap justify-between items-center gap-4 mb-6">
-        <div>
-          <h2 class="font-serif text-2xl md:text-3xl font-bold tracking-tight">Live Cooking Line</h2>
-          <p class="text-xs sm:text-sm text-muted mt-0.5">Tap individual dishes as they leave the flame to notify floor waiters.</p>
-        </div>
-        <div class="flex items-center gap-2">
-          ${pending.length > 0 ? `
-            <button class="btn btn-primary animate-pulse" onclick="Savor.navigate('incoming')">
-              ${icon('inbox', 'w-4 h-4')} ${pending.length} New Incoming Ticket${pending.length > 1 ? 's' : ''}
-            </button>
-          ` : ''}
-          <span class="pill pill-paid">${list.length} Cooking</span>
-        </div>
-      </div>
-
-      <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
-        ${list.map(o => renderTicketCard(o, true)).join('')}
-      </div>
-
-      ${list.length === 0 ? `
-        <div class="card p-12 text-center text-muted mt-6 max-w-md mx-auto">
-          <div class="w-14 h-14 rounded-2xl bg-surface-2 mx-auto flex items-center justify-center text-ink mb-3">
-            ${icon('chef-hat', 'w-7 h-7 text-amber-500')}
+          <div class="flex flex-wrap justify-between items-center gap-4 mb-6">
+            <div>
+              <h2 class="font-serif text-2xl md:text-3xl font-bold tracking-tight">Live Cooking Line</h2>
+              <p class="text-xs sm:text-sm text-muted mt-0.5">Tap individual dishes as they leave the flame to notify floor waiters.</p>
+            </div>
+            <div class="flex items-center gap-2">
+              ${pending.length > 0 ? `
+                <button class="btn btn-primary animate-pulse" onclick="Savor.navigate('incoming')">
+                  ${icon('inbox', 'w-4 h-4')} ${pending.length} New Incoming Ticket${pending.length > 1 ? 's' : ''}
+                </button>
+              ` : ''}
+              <span class="pill pill-paid">${list.length} Cooking</span>
+            </div>
           </div>
-          <h3 class="font-bold text-lg text-ink">Line is Clear!</h3>
-          <p class="text-xs text-muted mt-1">All cooking orders have been completed and served.</p>
-        </div>
-      ` : ''}
-    `;
+
+          <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
+            ${list.map(o => renderTicketCard(o, true)).join('')}
+          </div>
+
+          ${list.length === 0 ? `
+            <div class="card p-12 text-center text-muted mt-6 max-w-md mx-auto">
+              <div class="w-14 h-14 rounded-2xl bg-surface-2 mx-auto flex items-center justify-center text-ink mb-3">
+                ${icon('chef-hat', 'w-7 h-7 text-amber-500')}
+              </div>
+              <h3 class="font-bold text-lg text-ink">Line is Clear!</h3>
+              <p class="text-xs text-muted mt-1">All cooking orders have been completed and served.</p>
+            </div>
+          ` : ''}
+        `;
       }
 
       /* ==================== INCOMING ==================== */
       function renderIncoming(pending) {
         return `
-      <div class="flex flex-wrap justify-between items-center gap-4 mb-6">
-        <div>
-          <h2 class="font-serif text-2xl md:text-3xl font-bold tracking-tight">New Incoming Tickets</h2>
-          <p class="text-xs sm:text-sm text-muted mt-0.5">Tickets sent directly from waiter mobile phones. Tap Accept to start fire.</p>
-        </div>
-        <button class="btn btn-ghost" onclick="window.acceptAllPending()">
-          ${icon('check-check', 'w-4 h-4 text-emerald-500')} Fire All Incoming
-        </button>
-      </div>
+          <div class="flex flex-wrap justify-between items-center gap-4 mb-6">
+            <div>
+              <h2 class="font-serif text-2xl md:text-3xl font-bold tracking-tight">New Incoming Tickets</h2>
+              <p class="text-xs sm:text-sm text-muted mt-0.5">Tickets sent directly from waiter mobile phones. Tap Accept to start fire.</p>
+            </div>
+            <button class="btn btn-ghost" onclick="window.acceptAllPending()">
+              ${icon('check-check', 'w-4 h-4 text-emerald-500')} Fire All Incoming
+            </button>
+          </div>
 
-      <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
-        ${pending.map(o => renderTicketCard(o, false)).join('')}
-      </div>
+          <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
+            ${pending.map(o => renderTicketCard(o, false)).join('')}
+          </div>
 
-      ${pending.length === 0 ? `
-        <div class="card p-12 text-center text-muted mt-6 max-w-md mx-auto">
-          <h3 class="font-bold text-base text-ink">No new pending tickets</h3>
-          <p class="text-xs text-muted mt-1">All incoming orders have been accepted.</p>
-        </div>
-      ` : ''}
-    `;
+          ${pending.length === 0 ? `
+            <div class="card p-12 text-center text-muted mt-6 max-w-md mx-auto">
+              <h3 class="font-bold text-base text-ink">No new pending tickets</h3>
+              <p class="text-xs text-muted mt-1">All incoming orders have been accepted.</p>
+            </div>
+          ` : ''}
+        `;
       }
 
       /* ==================== COMPLETED ==================== */
       function renderHistory(completed) {
         return `
-      <div class="flex flex-wrap justify-between items-center gap-4 mb-6">
-        <div>
-          <h2 class="font-serif text-2xl md:text-3xl font-bold tracking-tight">Served Tickets Log</h2>
-          <p class="text-xs sm:text-sm text-muted mt-0.5">Dishes that have been plated, marked ready, and delivered to guests.</p>
-        </div>
-      </div>
+          <div class="flex flex-wrap justify-between items-center gap-4 mb-6">
+            <div>
+              <h2 class="font-serif text-2xl md:text-3xl font-bold tracking-tight">Served Tickets Log</h2>
+              <p class="text-xs sm:text-sm text-muted mt-0.5">Dishes that have been plated, marked ready, and delivered to guests.</p>
+            </div>
+          </div>
 
-      <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
-        ${completed.slice(0, 12).map(o => renderTicketCard(o, false, true)).join('')}
-      </div>
-    `;
+          <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
+            ${completed.slice(0, 12).map(o => renderTicketCard(o, false, true)).join('')}
+          </div>
+        `;
       }
 
       /* ==================== TICKET CARD ==================== */
@@ -151,57 +150,65 @@
             : 'bg-surface-2 text-muted';
 
         return `
-      <div class="card p-5 flex flex-col justify-between ${isUrgent ? 'ticket-urgent' : ''}">
-        <div>
-          <div class="flex justify-between items-start pb-3 border-b border-border">
+          <div class="card p-5 flex flex-col justify-between ${isUrgent ? 'ticket-urgent' : ''}">
             <div>
-              <div class="flex items-center gap-2">
-                <span class="font-serif font-bold text-2xl font-mono">${esc(o.code)}</span>
-                ${tableTag(o)}
-              </div>
-              <span class="text-xs text-muted block mt-1">Taken by ${esc(o.staff || 'Waiter')} at ${fmtTime(o.createdAt)}</span>
-            </div>
-            <span class="pill ${timerBadgeClass}">
-              ${icon('clock', 'w-3 h-3')} ${elapsedMinutes}m ago
-            </span>
-          </div>
-
-          <div class="divide-y divide-border/60 my-3">
-            ${(o.items || []).map((item, idx) => `
-              <div class="py-2.5 flex items-start justify-between gap-3">
-                <div class="flex-1">
+              <div class="flex justify-between items-start pb-3 border-b border-border">
+                <div>
                   <div class="flex items-center gap-2">
-                    <span class="w-6 h-6 rounded-md bg-surface-2 flex items-center justify-center font-bold text-xs flex-shrink-0">${item.qty}×</span>
-                    <strong class="text-sm ${item.ready ? 'line-through text-muted' : 'text-ink'}">${esc(item.name)}</strong>
+                    <span class="font-serif font-bold text-2xl font-mono">${esc(o.code)}</span>
+                    ${tableTag(o)}
                   </div>
-                  ${item.note ? `<p class="text-xs text-amber-500 font-semibold italic mt-1 pl-8">"${esc(item.note)}"</p>` : ''}
+                  <span class="text-xs text-muted block mt-1">Taken by ${esc(o.staff || 'Waiter')} at ${fmtTime(o.createdAt)}</span>
                 </div>
-
-                ${isLivePass ? `
-                  <button type="button" class="${item.ready ? 'pill pill-paid border border-emerald-500/40 hover:opacity-85' : 'btn btn-ghost text-xs py-1.5 px-3 min-h-[2.4rem] hover:border-emerald-500'} active:scale-95 transition-all flex-shrink-0" onclick="window.markDishReady('${o.id}', ${idx})" title="${item.ready ? 'Tap to move back to cooking' : 'Tap to mark ready'}">
-                    ${item.ready ? icon('check', 'w-3 h-3') + ' Ready' : 'Mark Ready'}
-                  </button>
-                ` : item.ready ? `<span class="pill pill-paid text-[10px]">Plated</span>` : ''}
+                <span class="pill ${timerBadgeClass}">
+                  ${icon('clock', 'w-3 h-3')} ${elapsedMinutes}m ago
+                </span>
               </div>
-            `).join('')}
+
+              <div class="divide-y divide-border/60 my-3">
+                ${(o.items || []).map((item, idx) => {
+                  const isCancelled = !!item.cancelled;
+                  return `
+                    <div class="py-2.5 flex items-start justify-between gap-3 ${isCancelled ? 'opacity-60' : ''}">
+                      <div class="flex-1">
+                        <div class="flex items-center gap-2">
+                          <span class="w-6 h-6 rounded-md flex items-center justify-center font-bold text-xs flex-shrink-0 ${isCancelled ? 'bg-alert-soft text-alert' : 'bg-surface-2'}">${item.qty}×</span>
+                          <strong class="text-sm ${(item.ready || isCancelled) ? 'line-through text-muted' : 'text-ink'}">${esc(item.name)}</strong>
+                        </div>
+                        ${item.note ? `<p class="text-xs text-amber-500 font-semibold italic mt-1 pl-8">"${esc(item.note)}"</p>` : ''}
+                        ${isCancelled ? `<p class="text-[11px] text-rose-400 font-bold mt-1 pl-8">✕ Cancelled by ${esc(item.cancelledBy || 'Waiter')}</p>` : ''}
+                      </div>
+
+                      ${isCancelled ? `
+                        <span class="pill pill-alert text-[10px]">Cancelled</span>
+                      ` : isLivePass ? `
+                        <button type="button" class="${item.ready ? 'pill pill-paid border border-emerald-500/40 hover:opacity-85' : 'btn btn-ghost text-xs py-1.5 px-3 min-h-[2.4rem] hover:border-emerald-500'} active:scale-95 transition-all flex-shrink-0" onclick="window.markDishReady('${o.id}', ${idx})" title="${item.ready ? 'Tap to move back to cooking' : 'Tap to mark ready'}">
+                          ${item.ready ? icon('check', 'w-3 h-3') + ' Ready' : 'Mark Ready'}
+                        </button>
+                      ` : item.ready ? `<span class="pill pill-paid text-[10px]">Plated</span>` : ''}
+                    </div>
+                  `;
+                }).join('')}
+              </div>
+            </div>
+
+            <div class="pt-3 border-t border-border flex items-center justify-between">
+              <span class="text-xs text-muted">
+                ${readyCount(o)} of ${activeItemCount(o)} dishes ready${cancelledItemsCount(o) > 0 ? `<span class="text-rose-400"> · ${cancelledItemsCount(o)} cancelled</span>` : ''}
+              </span>
+
+              ${o.status === 'PENDING' ? `
+                <button class="btn btn-primary py-1.5 px-3 text-xs" onclick="window.acceptTicket('${o.id}')">
+                  ${icon('flame', 'w-3.5 h-3.5')} Fire Ticket
+                </button>
+              ` : o.status === 'PREPARING' || o.status === 'READY' ? `
+                <button class="btn btn-ghost py-1.5 px-3 text-xs text-emerald-400 hover:border-emerald-500" onclick="window.completeAllTicket('${o.id}')">
+                  ${icon('check-check', 'w-3.5 h-3.5')} All Done
+                </button>
+              ` : ''}
+            </div>
           </div>
-        </div>
-
-        <div class="pt-3 border-t border-border flex items-center justify-between">
-          <span class="text-xs text-muted">${readyCount(o)} of ${itemCount(o)} dishes ready</span>
-
-          ${o.status === 'PENDING' ? `
-            <button class="btn btn-primary py-1.5 px-3 text-xs" onclick="window.acceptTicket('${o.id}')">
-              ${icon('flame', 'w-3.5 h-3.5')} Fire Ticket
-            </button>
-          ` : o.status === 'PREPARING' || o.status === 'READY' ? `
-            <button class="btn btn-ghost py-1.5 px-3 text-xs text-emerald-400 hover:border-emerald-500" onclick="window.completeAllTicket('${o.id}')">
-              ${icon('check-check', 'w-3.5 h-3.5')} All Done
-            </button>
-          ` : ''}
-        </div>
-      </div>
-    `;
+        `;
       }
 
       /* ==================== KITCHEN ACTIONS ==================== */
@@ -237,7 +244,7 @@
         const o = S.state.orders.find(ord => ord.id === orderId);
         if (!o) return;
         for (let i = 0; i < (o.items || []).length; i++) {
-          if (!o.items[i].ready) {
+          if (!o.items[i].ready && !o.items[i].cancelled) {
             await S.Data.markItemReady(orderId, i, S.session.name || 'Kitchen');
           }
         }

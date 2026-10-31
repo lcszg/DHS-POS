@@ -227,7 +227,8 @@
       if (!session) return;
       S.session = session;
 
-      const { esc, icon, peso, toast, setHtml, orderMetaText, itemCount, servedCount, readyUnservedCount, readyCount, fmtTime } = S;
+      const { esc, icon, peso, toast, setHtml, orderMetaText, itemCount, servedCount, readyUnservedCount, readyCount,
+        activeItemCount, cancelledItemsCount, fmtTime } = S;
 
       let currentCategory = 'All';
       let searchQuery = '';
@@ -725,7 +726,7 @@
         const statusLabel = { PENDING: 'Sent to kitchen', PREPARING: 'Cooking', READY: 'Ready to serve' };
         const pillClass = { PENDING: 'pill-pending', PREPARING: 'pill-preparing', READY: 'pill-ready' };
         const borderColor = o.status === 'READY' ? 'var(--success)' : o.status === 'PREPARING' ? 'var(--primary)' : 'var(--info)';
-        const canCancel = o.status === 'PENDING' || o.status === 'PREPARING';
+        const canCancelWhole = o.status === 'PENDING' || o.status === 'PREPARING';
 
         return `
           <article class="wt-rcard" style="border-left-color: ${borderColor};">
@@ -737,16 +738,29 @@
               <span class="pill ${pillClass[o.status] || 'pill-completed'}">${statusLabel[o.status] || o.status}</span>
             </div>
 
-            ${(o.items || []).map(item => `
-              <div class="wt-ritem">
-                <span class="q wt-mono">${item.qty}×</span>
-                <div class="n">${esc(item.name)}${item.note ? `<small>“${esc(item.note)}”</small>` : ''}</div>
-              </div>
-            `).join('')}
+            ${(o.items || []).map((item, idx) => {
+              const isCancelled = !!item.cancelled;
+              const canCancelItem = !isCancelled && !item.served && o.status !== 'CANCELLED' && o.status !== 'COMPLETED';
+              return `
+                <div class="wt-ritem ${isCancelled ? 'opacity-60' : ''}" style="${isCancelled ? 'background:color-mix(in srgb, var(--alert-soft) 40%, transparent);' : ''}">
+                  <span class="q wt-mono" style="${isCancelled ? 'background:var(--alert-soft);color:var(--alert);' : ''}">${item.qty}×</span>
+                  <div class="n" style="${isCancelled ? 'text-decoration:line-through;color:var(--text-muted);' : ''}">
+                    ${esc(item.name)}
+                    ${item.note ? `<small>“${esc(item.note)}”</small>` : ''}
+                    ${isCancelled ? `<small style="color:var(--alert);font-style:normal;font-weight:700;">✕ Cancelled${item.cancelledBy ? ' by ' + esc(item.cancelledBy) : ''}</small>` : ''}
+                  </div>
+                  ${canCancelItem ? `
+                    <button type="button" class="wt-iconbtn danger" aria-label="Cancel ${esc(item.name)}" title="Cancel this item" onclick="window.confirmCancelItem('${esc(o.id)}', ${idx})">
+                      ${icon('x', 'w-4 h-4')}
+                    </button>
+                  ` : isCancelled ? `<span class="pill pill-alert text-[10px]">Cancelled</span>` : ''}
+                </div>
+              `;
+            }).join('')}
 
             <div class="wt-rfoot">
-              <small>${peso(S.orderTotal(o))} · ${readyCount(o)} of ${itemCount(o)} plated</small>
-              ${canCancel ? `
+              <small>${peso(S.orderTotal(o))} · ${readyCount(o)} of ${activeItemCount(o)} plated${cancelledItemsCount(o) > 0 ? ` · ${cancelledItemsCount(o)} cancelled` : ''}</small>
+              ${canCancelWhole ? `
                 <button type="button" class="wt-all" style="border-color:var(--alert);color:var(--alert);"
                   onclick="window.confirmCancel('${esc(o.id)}', '${esc(o.code)}')">
                   ${icon('x-circle', 'w-4 h-4')} Cancel ticket
@@ -790,6 +804,43 @@
         render();
       };
 
+      window.confirmCancelItem = (orderId, itemIndex) => {
+        const order = S.state.orders.find(o => o.id === orderId);
+        if (!order) return;
+        const item = order.items && order.items[itemIndex];
+        if (!item || item.cancelled) return;
+
+        S.Modal.open(`
+          <div class="p-6 max-w-sm mx-auto text-center">
+            <div class="w-14 h-14 rounded-2xl mx-auto flex items-center justify-center mb-4" style="background:var(--alert-soft);color:var(--alert);border:1px solid color-mix(in srgb, var(--alert) 30%, transparent)">
+              ${icon('x-circle', 'w-7 h-7')}
+            </div>
+            <h3 class="font-serif font-bold text-xl">Cancel this item?</h3>
+            <p class="text-sm text-muted mt-2 leading-relaxed">
+              Cancel <b class="text-ink">${esc(item.qty)}× ${esc(item.name)}</b> from ticket <b>${esc(order.code)}</b>?
+            </p>
+            ${item.ready ? `<p class="text-xs text-amber-500 mt-2 font-semibold">⚠ This dish is already plated at the pass. The kitchen will be notified to discard it.</p>` : ''}
+            <div class="flex gap-2.5 mt-6">
+              <button type="button" class="btn btn-ghost flex-1 justify-center" onclick="Savor.Modal.close()">
+                Keep item
+              </button>
+              <button type="button" class="btn flex-1 justify-center" style="background:var(--alert);color:#fff" onclick="window.executeCancelItem('${esc(orderId)}', ${Number(itemIndex)})">
+                ${icon('x-circle', 'w-4 h-4')} Cancel item
+              </button>
+            </div>
+          </div>
+        `);
+      };
+
+      window.executeCancelItem = async (orderId, itemIndex) => {
+        const order = S.state.orders.find(o => o.id === orderId);
+        const item = order && order.items && order.items[itemIndex];
+        await S.Data.cancelOrderItem(orderId, itemIndex, S.session.name || 'Waiter');
+        S.Modal.close();
+        toast(`"${item ? item.name : 'Item'}" cancelled — kitchen notified.`, 2800, 'info');
+        render();
+      };
+
       /* ==================== READY ==================== */
       function readySince(o) {
         const ts = (o.items || []).filter(i => i && i.ready && !i.served).map(i => Number(i.readyAt) || 0).filter(Boolean);
@@ -822,7 +873,7 @@
                   </div>
 
                   ${(o.items || []).map((item, originalIndex) => {
-            if (!item.ready || item.served) return '';
+            if (!item.ready || item.served || item.cancelled) return '';
             return `
                       <div class="wt-ritem">
                         <span class="q wt-mono">${item.qty}×</span>
@@ -832,7 +883,7 @@
           }).join('')}
 
                   <div class="wt-rfoot">
-                    <small>${servedCount(o)} of ${itemCount(o)} served</small>
+                    <small>${servedCount(o)} of ${activeItemCount(o)} served${cancelledItemsCount(o) > 0 ? ` · ${cancelledItemsCount(o)} cancelled` : ''}</small>
                     ${pending > 1 ? `<button type="button" class="wt-all" onclick="window.serveAllDishes('${esc(o.id)}')">${icon('check-check', 'w-4 h-4')} Deliver all ${pending}</button>` : ''}
                   </div>
                 </article>`;
@@ -949,7 +1000,7 @@
         const o = S.state.orders.find(ord => ord.id === orderId);
         if (!o) return;
         for (let i = 0; i < (o.items || []).length; i++) {
-          if (o.items[i].ready && !o.items[i].served) {
+          if (o.items[i].ready && !o.items[i].served && !o.items[i].cancelled) {
             await S.Data.serveItem(orderId, i, S.session.name || 'Waiter');
           }
         }

@@ -2,12 +2,12 @@
  * =========================================================================
  * SAVOR & CO. — VERCEL SERVERLESS SQL DATABASE API
  * =========================================================================
- *
+ * 
  * Works with any standard PostgreSQL database:
  * - Neon Serverless Postgres (Recommended & 100% Free at https://neon.tech)
  * - Vercel Postgres (1-click in Vercel Storage)
  * - Supabase (PostgreSQL connection string)
- *
+ * 
  * Auto-initializes tables and seed data on first request!
  */
 
@@ -215,7 +215,10 @@ function memoryCreateOrder(payload) {
     ready: false,
     readyAt: null,
     served: false,
-    servedAt: null
+    servedAt: null,
+    cancelled: false,
+    cancelledAt: null,
+    cancelledBy: ''
   }));
 
   let total = Number(payload.total);
@@ -269,42 +272,90 @@ async function handleAction(action, payload) {
         return memoryStore.menu;
       case 'createOrder':
         return memoryCreateOrder(payload);
+
       case 'updateOrderStatus': {
         const ord = memoryStore.orders.find(o => o.id === payload.id);
         if (!ord) throw new Error('Order not found');
+        const now = Date.now();
         ord.status = payload.status;
-        ord.updatedAt = Date.now();
+        ord.updatedAt = now;
         if (payload.staff) ord.staff = payload.staff;
-        return { id: ord.id, status: ord.status, updatedAt: ord.updatedAt };
+        if (payload.status === 'CANCELLED') {
+          (ord.items || []).forEach(it => {
+            if (it && !it.cancelled) {
+              it.cancelled = true;
+              it.cancelledAt = now;
+              it.cancelledBy = payload.staff || 'Staff';
+              it.ready = false;
+              it.served = false;
+            }
+          });
+          ord.total = 0;
+        }
+        return { id: ord.id, status: ord.status, updatedAt: ord.updatedAt, items: ord.items, total: ord.total };
       }
+
+      case 'cancelOrderItem': {
+        const ord = memoryStore.orders.find(o => o.id === payload.orderId);
+        if (!ord) throw new Error('Order not found');
+        const idx = Number(payload.itemIndex);
+        const it = ord.items && ord.items[idx];
+        if (!it) throw new Error('Item index invalid');
+        if (it.cancelled) return ord;
+
+        const now = Date.now();
+        it.cancelled = true;
+        it.cancelledAt = now;
+        it.cancelledBy = String(payload.staff || 'Waiter');
+        it.ready = false;
+        it.served = false;
+
+        const active = ord.items.filter(i => !i.cancelled);
+        if (active.length === 0) ord.status = 'CANCELLED';
+        else if (active.every(i => i.served)) ord.status = 'COMPLETED';
+        else if (active.every(i => i.ready)) ord.status = 'READY';
+        else if (active.some(i => i.ready)) ord.status = 'PREPARING';
+        else ord.status = 'PENDING';
+
+        ord.updatedAt = now;
+        ord.total = active.reduce((s, i) => s + (Number(i.price) || 0) * (Number(i.qty) || 1), 0);
+        return ord;
+      }
+
       case 'markItemReady': {
         const ord = memoryStore.orders.find(o => o.id === payload.orderId);
         if (!ord) throw new Error('Order not found');
         const it = ord.items[payload.itemIndex];
         if (!it) throw new Error('Item index invalid');
+        if (it.cancelled) throw new Error('Cannot mark a cancelled item as ready');
         const now = Date.now();
         it.ready = typeof payload.ready === 'boolean' ? payload.ready : true;
         it.readyAt = it.ready ? now : null;
         if (!it.ready) it.served = false;
-        const allReady = (ord.items || []).every(i => !!i.ready);
+        const activeItems = (ord.items || []).filter(i => !i.cancelled);
+        const allReady = activeItems.length > 0 && activeItems.every(i => !!i.ready);
         ord.status = allReady ? 'READY' : 'PREPARING';
         ord.updatedAt = now;
         ord.staff = payload.staff || 'Kitchen';
         return ord;
       }
+
       case 'serveItem': {
         const ord = memoryStore.orders.find(o => o.id === payload.orderId);
         if (!ord) throw new Error('Order not found');
         const it = ord.items[payload.itemIndex];
         if (!it) throw new Error('Item index invalid');
+        if (it.cancelled) throw new Error('Cannot serve a cancelled item');
         const now = Date.now();
         it.served = true;
         it.servedAt = now;
-        if (ord.items.every(i => !!i.served)) ord.status = 'COMPLETED';
+        const activeItems = (ord.items || []).filter(i => !i.cancelled);
+        if (activeItems.length > 0 && activeItems.every(i => !!i.served)) ord.status = 'COMPLETED';
         ord.updatedAt = now;
         ord.staff = payload.staff || 'Waiter';
         return ord;
       }
+
       case 'markOrderPaid': {
         const ord = memoryStore.orders.find(o => o.id === payload.id);
         if (!ord) throw new Error('Order not found');
@@ -314,6 +365,7 @@ async function handleAction(action, payload) {
         ord.updatedAt = now;
         return { id: ord.id, payment: 'PAID', paidAt: now };
       }
+
       case 'saveMenuItem': {
         const item = payload.item;
         const id = item.id || ('item_' + Math.random().toString(36).substring(2, 9));
@@ -323,10 +375,12 @@ async function handleAction(action, payload) {
         else memoryStore.menu.push(item);
         return item;
       }
+
       case 'deleteMenuItem': {
         memoryStore.menu = memoryStore.menu.filter(m => m.id !== payload.id);
         return { id: payload.id, deleted: true };
       }
+
       case 'saveAccount': {
         const acc = payload.account;
         const id = acc.id || ('acc_' + Math.random().toString(36).substring(2, 9));
@@ -336,22 +390,26 @@ async function handleAction(action, payload) {
         else memoryStore.accounts.push(acc);
         return acc;
       }
+
       case 'deleteAccount': {
         memoryStore.accounts = memoryStore.accounts.filter(a => a.id !== payload.id);
         return { id: payload.id, deleted: true };
       }
+
       case 'authenticate': {
         const u = String(payload.username || '').toLowerCase().trim();
         const p = String(payload.password || '').trim();
-        const found = memoryStore.accounts.find(a => a.username.toLowerCase() === u && a.password === p);
+        const found = memoryStore.accounts.find(a => a.username && a.username.toLowerCase() === u && a.password === p);
         if (!found) throw new Error('Invalid username or password');
         if (String(found.status || 'Active').toLowerCase() === 'inactive') throw new Error('Account is inactive');
         return { id: found.id, name: found.name, username: found.username, role: found.role };
       }
+
       case 'reset': {
         memoryStore.orders = [];
         return { reset: true };
       }
+
       default:
         throw new Error('Unknown action: ' + action);
     }
@@ -429,7 +487,10 @@ async function handleAction(action, payload) {
         ready: false,
         readyAt: null,
         served: false,
-        servedAt: null
+        servedAt: null,
+        cancelled: false,
+        cancelledAt: null,
+        cancelledBy: ''
       }));
 
       let total = Number(payload.total);
@@ -465,7 +526,32 @@ async function handleAction(action, payload) {
 
     case 'updateOrderStatus': {
       const now = Date.now();
-      const rows = await querySQL(
+      let rows;
+
+      if (payload.status === 'CANCELLED') {
+        // Cascade cancellation to all items
+        const orderRows = await querySQL(`SELECT * FROM orders WHERE "id" = $1`, [payload.id]);
+        if (orderRows.length) {
+          const ord = orderRows[0];
+          let items = typeof ord.items === 'string' ? JSON.parse(ord.items) : ord.items;
+          items.forEach(it => {
+            if (it && !it.cancelled) {
+              it.cancelled = true;
+              it.cancelledAt = now;
+              it.cancelledBy = payload.staff || 'Staff';
+              it.ready = false;
+              it.served = false;
+            }
+          });
+          await querySQL(
+            `UPDATE orders SET "status" = $1, "items" = $2::jsonb, "total" = 0, "updatedAt" = $3, "staff" = COALESCE(NULLIF($4, ''), "staff") WHERE "id" = $5`,
+            [payload.status, JSON.stringify(items), now, payload.staff || '', payload.id]
+          );
+          return { id: payload.id, status: payload.status, updatedAt: now };
+        }
+      }
+
+      rows = await querySQL(
         `UPDATE orders
          SET "status" = $1, "updatedAt" = $2, "staff" = COALESCE(NULLIF($3, ''), "staff")
          WHERE "id" = $4
@@ -476,7 +562,7 @@ async function handleAction(action, payload) {
       return { id: payload.id, status: payload.status, updatedAt: now };
     }
 
-    case 'markItemReady': {
+    case 'cancelOrderItem': {
       const rows = await querySQL(`SELECT * FROM orders WHERE "id" = $1`, [payload.orderId]);
       if (!rows.length) throw new Error('Order not found: ' + payload.orderId);
       const ord = rows[0];
@@ -485,12 +571,47 @@ async function handleAction(action, payload) {
       if (!items || !items[idx]) throw new Error('Invalid item index: ' + idx);
 
       const now = Date.now();
+      items[idx].cancelled = true;
+      items[idx].cancelledAt = now;
+      items[idx].cancelledBy = String(payload.staff || 'Waiter');
+      items[idx].ready = false;
+      items[idx].served = false;
+
+      const active = items.filter(i => !i.cancelled);
+      let newStatus;
+      if (active.length === 0) newStatus = 'CANCELLED';
+      else if (active.every(i => i.served)) newStatus = 'COMPLETED';
+      else if (active.every(i => i.ready)) newStatus = 'READY';
+      else if (active.some(i => i.ready)) newStatus = 'PREPARING';
+      else newStatus = 'PENDING';
+
+      const newTotal = active.reduce((s, i) => s + (Number(i.price) || 0) * (Number(i.qty) || 1), 0);
+
+      await querySQL(
+        `UPDATE orders SET "items" = $1::jsonb, "status" = $2, "total" = $3, "updatedAt" = $4 WHERE "id" = $5`,
+        [JSON.stringify(items), newStatus, newTotal, now, payload.orderId]
+      );
+
+      return { id: payload.orderId, status: newStatus, items, total: newTotal, updatedAt: now };
+    }
+
+    case 'markItemReady': {
+      const rows = await querySQL(`SELECT * FROM orders WHERE "id" = $1`, [payload.orderId]);
+      if (!rows.length) throw new Error('Order not found: ' + payload.orderId);
+      const ord = rows[0];
+      let items = typeof ord.items === 'string' ? JSON.parse(ord.items) : ord.items;
+      const idx = Number(payload.itemIndex);
+      if (!items || !items[idx]) throw new Error('Invalid item index: ' + idx);
+      if (items[idx].cancelled) throw new Error('Cannot mark a cancelled item as ready');
+
+      const now = Date.now();
       const newReady = typeof payload.ready === 'boolean' ? payload.ready : true;
       items[idx].ready = newReady;
       items[idx].readyAt = newReady ? now : null;
       if (!newReady) items[idx].served = false;
 
-      const allReady = items.every(i => !!i.ready);
+      const activeItems = items.filter(i => !i.cancelled);
+      const allReady = activeItems.length > 0 && activeItems.every(i => !!i.ready);
       let newStatus = allReady ? 'READY' : 'PREPARING';
       const staff = payload.staff || 'Kitchen';
 
@@ -518,12 +639,14 @@ async function handleAction(action, payload) {
       let items = typeof ord.items === 'string' ? JSON.parse(ord.items) : ord.items;
       const idx = Number(payload.itemIndex);
       if (!items || !items[idx]) throw new Error('Invalid item index: ' + idx);
+      if (items[idx].cancelled) throw new Error('Cannot serve a cancelled item');
 
       const now = Date.now();
       items[idx].served = true;
       items[idx].servedAt = now;
 
-      const allServed = items.length > 0 && items.every(it => !!it.served);
+      const activeItems = items.filter(i => !i.cancelled);
+      const allServed = activeItems.length > 0 && activeItems.every(it => !!it.served);
       const newStatus = allServed ? 'COMPLETED' : ord.status;
       const staff = payload.staff || 'Waiter';
 

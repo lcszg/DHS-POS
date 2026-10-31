@@ -66,72 +66,75 @@
         else content = renderUnpaid(unpaid);
 
         setHtml(app, `
-      ${S.renderNav('Cashier Counter POS', S.currentScreen, NAV_ITEMS)}
-      <main class="max-w-7xl mx-auto px-4 py-6">
-        ${content}
-      </main>
-    `);
+          ${S.renderNav('Cashier Counter POS', S.currentScreen, NAV_ITEMS)}
+          <main class="max-w-7xl mx-auto px-4 py-6">
+            ${content}
+          </main>
+        `);
       }
 
       function renderUnpaid(unpaid) {
         const totalAwaiting = unpaid.reduce((sum, o) => sum + orderTotal(o), 0);
 
         return `
-      <div class="flex flex-wrap justify-between items-center gap-4 mb-6">
-        <div>
-          <h2 class="font-serif text-2xl md:text-3xl font-bold tracking-tight">Active Bills &amp; Payment Counter</h2>
-          <p class="text-xs sm:text-sm text-muted mt-0.5">Settle bills for dining tables. View order list and collect gross total.</p>
-        </div>
-        <div class="flex items-center gap-2">
-          <span class="pill pill-unpaid">${unpaid.length} Unsettled · ${peso(totalAwaiting)}</span>
-        </div>
-      </div>
-
-      <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
-        ${unpaid.map(o => `
-          <div class="card p-5 flex flex-col justify-between hover:border-amber-500 transition-colors">
+          <div class="flex flex-wrap justify-between items-center gap-4 mb-6">
             <div>
-              <div class="flex justify-between items-start pb-3 border-b border-border">
+              <h2 class="font-serif text-2xl md:text-3xl font-bold tracking-tight">Active Bills &amp; Payment Counter</h2>
+              <p class="text-xs sm:text-sm text-muted mt-0.5">Settle bills for dining tables. View order list and collect gross total.</p>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="pill pill-unpaid">${unpaid.length} Unsettled · ${peso(totalAwaiting)}</span>
+            </div>
+          </div>
+
+          <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+            ${unpaid.map(o => `
+              <div class="card p-5 flex flex-col justify-between hover:border-amber-500 transition-colors">
                 <div>
-                  <h3 class="font-serif font-bold text-2xl font-mono">${esc(o.code)}</h3>
-                  <span class="text-xs font-semibold text-amber-500 block mt-0.5">${esc(orderMetaText(o))}</span>
-                </div>
-                ${statusPill(o.status)}
-              </div>
-
-              <div class="divide-y divide-border/60 my-3 text-xs">
-                ${(o.items || []).map(i => `
-                  <div class="py-1.5 flex justify-between items-center">
-                    <span>${i.qty}× ${esc(i.name)}</span>
-                    <span class="font-semibold">${peso((i.price || 0) * (i.qty || 1))}</span>
+                  <div class="flex justify-between items-start pb-3 border-b border-border">
+                    <div>
+                      <h3 class="font-serif font-bold text-2xl font-mono">${esc(o.code)}</h3>
+                      <span class="text-xs font-semibold text-amber-500 block mt-0.5">${esc(orderMetaText(o))}</span>
+                    </div>
+                    ${statusPill(o.status)}
                   </div>
-                `).join('')}
-              </div>
-            </div>
 
-            <div class="pt-3 border-t border-border flex items-center justify-between">
-              <div>
-                <span class="text-xs text-muted block">Gross Subtotal</span>
-                <strong class="text-xl font-bold text-ink">${peso(orderTotal(o))}</strong>
-              </div>
-              <button class="btn btn-primary py-2 px-4 text-xs font-bold" onclick="window.openPaymentModal('${o.id}')">
-                ${icon('check-circle', 'w-4 h-4')} Settle Bill
-              </button>
-            </div>
-          </div>
-        `).join('')}
-      </div>
+                  <div class="divide-y divide-border/60 my-3 text-xs">
+                    ${(o.items || []).map(i => {
+                      const isCancelled = !!i.cancelled;
+                      return `
+                        <div class="py-1.5 flex justify-between items-center ${isCancelled ? 'opacity-55' : ''}">
+                          <span class="${isCancelled ? 'line-through text-muted' : ''}">${i.qty}× ${esc(i.name)}</span>
+                          <span class="font-semibold ${isCancelled ? 'line-through text-muted' : ''}">${peso((i.price || 0) * (i.qty || 1))}</span>
+                        </div>
+                      `;
+                    }).join('')}
+                  </div>
+                </div>
 
-      ${unpaid.length === 0 ? `
-        <div class="card p-12 text-center text-muted max-w-md mx-auto mt-6">
-          <div class="w-12 h-12 rounded-2xl bg-surface-2 mx-auto flex items-center justify-center text-ink mb-3">
-            ${icon('check-check', 'w-6 h-6 text-emerald-500')}
+                <div class="pt-3 border-t border-border flex items-center justify-between">
+                  <div>
+                    <span class="text-xs text-muted block">Gross Subtotal</span>
+                    <strong class="text-xl font-bold text-ink">${peso(orderTotal(o))}</strong>
+                  </div>
+                  <button class="btn btn-primary py-2 px-4 text-xs font-bold" onclick="window.openPaymentModal('${o.id}')">
+                    ${icon('check-circle', 'w-4 h-4')} Settle Bill
+                  </button>
+                </div>
+              </div>
+            `).join('')}
           </div>
-          <h3 class="font-bold text-base text-ink">All Bills Settled!</h3>
-          <p class="text-xs text-muted mt-1">No active tables are currently awaiting payment.</p>
-        </div>
-      ` : ''}
-    `;
+
+          ${unpaid.length === 0 ? `
+            <div class="card p-12 text-center text-muted max-w-md mx-auto mt-6">
+              <div class="w-12 h-12 rounded-2xl bg-surface-2 mx-auto flex items-center justify-center text-ink mb-3">
+                ${icon('check-check', 'w-6 h-6 text-emerald-500')}
+              </div>
+              <h3 class="font-bold text-base text-ink">All Bills Settled!</h3>
+              <p class="text-xs text-muted mt-1">No active tables are currently awaiting payment.</p>
+            </div>
+          ` : ''}
+        `;
       }
 
       function renderSettled(settled, allSettled) {
@@ -149,90 +152,90 @@
         else if (historyDayFilter === 'ALL') dayLabel = 'All Days';
 
         return `
-      <div class="flex flex-wrap justify-between items-center gap-4 mb-6">
-        <div>
-          <h2 class="font-serif text-2xl md:text-3xl font-bold tracking-tight">Paid Order History &amp; Receipts</h2>
-          <p class="text-xs sm:text-sm text-muted mt-0.5">Resets everyday for daily floor service. View tickets and print receipts per day.</p>
-        </div>
-        <span class="pill pill-paid text-xs font-semibold">${dayLabel} · ${filtered.length} settled</span>
-      </div>
-
-      <div class="grid sm:grid-cols-3 gap-4 mb-6">
-        <div class="card p-4">
-          <span class="text-xs font-bold uppercase text-muted block mb-1">Total Collected (${dayLabel})</span>
-          <div class="text-2xl font-bold text-ink">${peso(totalCollected)}</div>
-          <small class="text-xs text-muted block mt-1">${filtered.length} paid tickets</small>
-        </div>
-        <div class="card p-4">
-          <span class="text-xs font-bold uppercase text-muted block mb-1">Average Check</span>
-          <div class="text-2xl font-bold text-amber-400">${peso(avgCheck)}</div>
-          <small class="text-xs text-muted block mt-1">Per settled table</small>
-        </div>
-        <div class="card p-4">
-          <span class="text-xs font-bold uppercase text-muted block mb-1">All-Time Settled Records</span>
-          <div class="text-2xl font-bold text-muted">${allSettled.length}</div>
-          <small class="text-xs text-muted block mt-1">Logged across all shifts</small>
-        </div>
-      </div>
-
-      <div class="card p-3.5 mb-6 bg-surface-2/40 border border-border flex flex-wrap items-center justify-between gap-3">
-        <div class="flex flex-wrap items-center gap-2">
-          <span class="text-xs font-bold uppercase text-muted flex items-center gap-1.5 mr-1">
-            ${icon('calendar', 'w-3.5 h-3.5 text-amber-500')} History Day:
-          </span>
-          <button class="btn ${historyDayFilter === 'TODAY' ? 'btn-primary' : 'btn-ghost'} py-1 px-3 text-xs rounded-xl" onclick="window.setHistoryDayFilter('TODAY')">Today</button>
-          <button class="btn ${historyDayFilter === 'YESTERDAY' ? 'btn-primary' : 'btn-ghost'} py-1 px-3 text-xs rounded-xl" onclick="window.setHistoryDayFilter('YESTERDAY')">Yesterday</button>
-          <button class="btn ${historyDayFilter === 'ALL' ? 'btn-primary' : 'btn-ghost'} py-1 px-3 text-xs rounded-xl" onclick="window.setHistoryDayFilter('ALL')">All Days</button>
-          <input type="date" class="input py-0.5 px-2 text-xs font-mono ml-1" value="${historyCustomDate}" onchange="window.setHistoryCustomDate(this.value)">
-        </div>
-
-        <div class="w-full sm:w-64">
-          <input type="text" class="input py-1.5 px-3 text-xs" placeholder="Search ticket code or table..." value="${esc(historySearch)}" oninput="window.setHistorySearch(this.value)">
-        </div>
-      </div>
-
-      <div class="card overflow-hidden">
-        <div class="overflow-x-auto">
-          <table class="w-full text-left text-sm" data-mobile-cards>
-            <thead class="bg-surface-2 border-b border-border text-xs uppercase text-muted">
-              <tr>
-                <th class="p-3.5">Ticket Code</th>
-                <th class="p-3.5">Table / Guest</th>
-                <th class="p-3.5">Itemized Order Breakdown</th>
-                <th class="p-3.5">Gross Total Paid</th>
-                <th class="p-3.5">Settled Time</th>
-                <th class="p-3.5 text-right">Receipt</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-border">
-              ${filtered.map(o => `
-                <tr class="hover:bg-surface-2/50 transition-colors">
-                  <td class="p-3.5 font-mono font-bold text-amber-400" data-label="Ticket">${esc(o.code)}</td>
-                  <td class="p-3.5" data-label="Table">${tableTag(o) || '<span class="text-muted text-xs">—</span>'}</td>
-                  <td class="p-3.5 max-w-sm text-xs" data-label="Items">
-                    <span class="font-medium text-ink">${esc(itemSummary(o))}</span>
-                  </td>
-                  <td class="p-3.5 font-bold text-base text-ink" data-label="Paid">${peso(orderTotal(o))}</td>
-                  <td class="p-3.5 text-xs text-muted" data-label="Settled">${fmtDateTime(o.paidAt || o.createdAt)}</td>
-                  <td class="p-3.5 text-right" data-label="">
-                    <button class="btn btn-ghost py-1 px-2.5 text-xs" onclick="window.printReceipt('${o.id}')">
-                      ${icon('printer', 'w-3 h-3 inline mr-1')} Receipt
-                    </button>
-                  </td>
-                </tr>
-              `).join('')}
-            </tbody>
-          </table>
-        </div>
-        ${filtered.length === 0 ? `
-          <div class="p-12 text-center text-muted">
-            ${icon('receipt', 'w-8 h-8 mx-auto mb-2 opacity-40')}
-            <h4 class="font-bold text-ink text-sm">No paid tickets found for ${dayLabel}</h4>
-            <p class="text-xs text-muted mt-0.5">Tickets settled at the cash counter will appear here in the daily log.</p>
+          <div class="flex flex-wrap justify-between items-center gap-4 mb-6">
+            <div>
+              <h2 class="font-serif text-2xl md:text-3xl font-bold tracking-tight">Paid Order History &amp; Receipts</h2>
+              <p class="text-xs sm:text-sm text-muted mt-0.5">Resets everyday for daily floor service. View tickets and print receipts per day.</p>
+            </div>
+            <span class="pill pill-paid text-xs font-semibold">${dayLabel} · ${filtered.length} settled</span>
           </div>
-        ` : ''}
-      </div>
-    `;
+
+          <div class="grid sm:grid-cols-3 gap-4 mb-6">
+            <div class="card p-4">
+              <span class="text-xs font-bold uppercase text-muted block mb-1">Total Collected (${dayLabel})</span>
+              <div class="text-2xl font-bold text-ink">${peso(totalCollected)}</div>
+              <small class="text-xs text-muted block mt-1">${filtered.length} paid tickets</small>
+            </div>
+            <div class="card p-4">
+              <span class="text-xs font-bold uppercase text-muted block mb-1">Average Check</span>
+              <div class="text-2xl font-bold text-amber-400">${peso(avgCheck)}</div>
+              <small class="text-xs text-muted block mt-1">Per settled table</small>
+            </div>
+            <div class="card p-4">
+              <span class="text-xs font-bold uppercase text-muted block mb-1">All-Time Settled Records</span>
+              <div class="text-2xl font-bold text-muted">${allSettled.length}</div>
+              <small class="text-xs text-muted block mt-1">Logged across all shifts</small>
+            </div>
+          </div>
+
+          <div class="card p-3.5 mb-6 bg-surface-2/40 border border-border flex flex-wrap items-center justify-between gap-3">
+            <div class="flex flex-wrap items-center gap-2">
+              <span class="text-xs font-bold uppercase text-muted flex items-center gap-1.5 mr-1">
+                ${icon('calendar', 'w-3.5 h-3.5 text-amber-500')} History Day:
+              </span>
+              <button class="btn ${historyDayFilter === 'TODAY' ? 'btn-primary' : 'btn-ghost'} py-1 px-3 text-xs rounded-xl" onclick="window.setHistoryDayFilter('TODAY')">Today</button>
+              <button class="btn ${historyDayFilter === 'YESTERDAY' ? 'btn-primary' : 'btn-ghost'} py-1 px-3 text-xs rounded-xl" onclick="window.setHistoryDayFilter('YESTERDAY')">Yesterday</button>
+              <button class="btn ${historyDayFilter === 'ALL' ? 'btn-primary' : 'btn-ghost'} py-1 px-3 text-xs rounded-xl" onclick="window.setHistoryDayFilter('ALL')">All Days</button>
+              <input type="date" class="input py-0.5 px-2 text-xs font-mono ml-1" value="${historyCustomDate}" onchange="window.setHistoryCustomDate(this.value)">
+            </div>
+
+            <div class="w-full sm:w-64">
+              <input type="text" class="input py-1.5 px-3 text-xs" placeholder="Search ticket code or table..." value="${esc(historySearch)}" oninput="window.setHistorySearch(this.value)">
+            </div>
+          </div>
+
+          <div class="card overflow-hidden">
+            <div class="overflow-x-auto">
+              <table class="w-full text-left text-sm" data-mobile-cards>
+                <thead class="bg-surface-2 border-b border-border text-xs uppercase text-muted">
+                  <tr>
+                    <th class="p-3.5">Ticket Code</th>
+                    <th class="p-3.5">Table / Guest</th>
+                    <th class="p-3.5">Itemized Order Breakdown</th>
+                    <th class="p-3.5">Gross Total Paid</th>
+                    <th class="p-3.5">Settled Time</th>
+                    <th class="p-3.5 text-right">Receipt</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-border">
+                  ${filtered.map(o => `
+                    <tr class="hover:bg-surface-2/50 transition-colors">
+                      <td class="p-3.5 font-mono font-bold text-amber-400" data-label="Ticket">${esc(o.code)}</td>
+                      <td class="p-3.5" data-label="Table">${tableTag(o) || '<span class="text-muted text-xs">—</span>'}</td>
+                      <td class="p-3.5 max-w-sm text-xs" data-label="Items">
+                        <span class="font-medium text-ink">${esc(itemSummary(o))}</span>
+                      </td>
+                      <td class="p-3.5 font-bold text-base text-ink" data-label="Paid">${peso(orderTotal(o))}</td>
+                      <td class="p-3.5 text-xs text-muted" data-label="Settled">${fmtDateTime(o.paidAt || o.createdAt)}</td>
+                      <td class="p-3.5 text-right" data-label="">
+                        <button class="btn btn-ghost py-1 px-2.5 text-xs" onclick="window.printReceipt('${o.id}')">
+                          ${icon('printer', 'w-3 h-3 inline mr-1')} Receipt
+                        </button>
+                      </td>
+                    </tr>
+                  `).join('')}
+                </tbody>
+              </table>
+            </div>
+            ${filtered.length === 0 ? `
+              <div class="p-12 text-center text-muted">
+                ${icon('receipt', 'w-8 h-8 mx-auto mb-2 opacity-40')}
+                <h4 class="font-bold text-ink text-sm">No paid tickets found for ${dayLabel}</h4>
+                <p class="text-xs text-muted mt-0.5">Tickets settled at the cash counter will appear here in the daily log.</p>
+              </div>
+            ` : ''}
+          </div>
+        `;
       }
 
       window.openPaymentModal = (orderId) => {
@@ -241,43 +244,47 @@
         const subtotal = orderTotal(o);
 
         S.Modal.open(`
-      <div class="p-6 max-w-md mx-auto" id="pay-box">
-        <div class="flex justify-between items-start mb-4">
-          <div>
-            <h3 class="font-serif font-bold text-2xl font-mono text-ink">${esc(o.code)}</h3>
-            <span class="text-xs text-amber-500 font-semibold block mt-0.5">${esc(orderMetaText(o))}</span>
-          </div>
-          <button class="btn btn-ghost p-1.5" onclick="Savor.Modal.close()">${icon('x', 'w-4 h-4')}</button>
-        </div>
-
-        <div>
-          <label class="block text-xs font-bold uppercase text-muted mb-1.5">Order Items (${itemCount(o)})</label>
-          <div class="border border-border rounded-xl bg-surface-2 p-3 divide-y divide-border/60 max-h-56 overflow-y-auto mb-4">
-            ${(o.items || []).map(i => `
-              <div class="py-2 flex justify-between items-start text-xs">
-                <div>
-                  <span class="font-bold text-ink">${i.qty}× ${esc(i.name)}</span>
-                  ${i.note ? `<small class="block text-amber-500 italic mt-0.5">"${esc(i.note)}"</small>` : ''}
-                </div>
-                <span class="font-mono font-semibold">${peso((i.price || 0) * (i.qty || 1))}</span>
+          <div class="p-6 max-w-md mx-auto" id="pay-box">
+            <div class="flex justify-between items-start mb-4">
+              <div>
+                <h3 class="font-serif font-bold text-2xl font-mono text-ink">${esc(o.code)}</h3>
+                <span class="text-xs text-amber-500 font-semibold block mt-0.5">${esc(orderMetaText(o))}</span>
               </div>
-            `).join('')}
+              <button class="btn btn-ghost p-1.5" onclick="Savor.Modal.close()">${icon('x', 'w-4 h-4')}</button>
+            </div>
+
+            <div>
+              <label class="block text-xs font-bold uppercase text-muted mb-1.5">Order Items (${itemCount(o)})</label>
+              <div class="border border-border rounded-xl bg-surface-2 p-3 divide-y divide-border/60 max-h-56 overflow-y-auto mb-4">
+                ${(o.items || []).map(i => {
+                  const isCancelled = !!i.cancelled;
+                  return `
+                    <div class="py-2 flex justify-between items-start text-xs ${isCancelled ? 'opacity-55' : ''}">
+                      <div>
+                        <span class="font-bold ${isCancelled ? 'line-through text-muted' : 'text-ink'}">${i.qty}× ${esc(i.name)}</span>
+                        ${i.note ? `<small class="block text-amber-500 italic mt-0.5">"${esc(i.note)}"</small>` : ''}
+                        ${isCancelled ? `<small class="block text-rose-400 font-bold mt-0.5">✕ Cancelled</small>` : ''}
+                      </div>
+                      <span class="font-mono font-semibold ${isCancelled ? 'line-through text-muted' : ''}">${peso((i.price || 0) * (i.qty || 1))}</span>
+                    </div>
+                  `;
+                }).join('')}
+              </div>
+            </div>
+
+            <div class="bg-surface-3 p-4 rounded-xl border border-border flex justify-between items-center mb-5">
+              <span class="text-xs font-bold uppercase tracking-wider text-muted">Gross Subtotal Due:</span>
+              <span class="text-2xl font-bold font-serif text-amber-400">${peso(subtotal)}</span>
+            </div>
+
+            <div class="flex gap-2">
+              <button class="btn btn-primary flex-1 justify-center py-2.5 text-sm font-bold" onclick="window.executeSettlement('${o.id}')">
+                ${icon('check-check', 'w-4 h-4')} Settle &amp; Mark Paid
+              </button>
+              <button class="btn btn-ghost py-2.5 px-4 text-sm" onclick="Savor.Modal.close()">Cancel</button>
+            </div>
           </div>
-        </div>
-
-        <div class="bg-surface-3 p-4 rounded-xl border border-border flex justify-between items-center mb-5">
-          <span class="text-xs font-bold uppercase tracking-wider text-muted">Gross Subtotal Due:</span>
-          <span class="text-2xl font-bold font-serif text-amber-400">${peso(subtotal)}</span>
-        </div>
-
-        <div class="flex gap-2">
-          <button class="btn btn-primary flex-1 justify-center py-2.5 text-sm font-bold" onclick="window.executeSettlement('${o.id}')">
-            ${icon('check-check', 'w-4 h-4')} Settle &amp; Mark Paid
-          </button>
-          <button class="btn btn-ghost py-2.5 px-4 text-sm" onclick="Savor.Modal.close()">Cancel</button>
-        </div>
-      </div>
-    `);
+        `);
       };
 
       window.executeSettlement = async (orderId) => {
@@ -296,50 +303,50 @@
         if (!o) return;
 
         S.Modal.open(`
-      <div class="p-6 max-w-sm mx-auto font-mono text-xs bg-white text-black p-8 rounded-xl shadow-2xl">
-        <div class="text-center pb-3 border-b border-dashed border-gray-400 mb-3">
-          <h2 class="font-bold text-base tracking-wider">FOOD &amp; BEVERAGE</h2>
-          <p class="text-[11px] text-gray-600">Restaurant Operations Receipt</p>
-          <p class="text-[10px] text-gray-500 mt-1">${fmtDateTime(o.paidAt || o.createdAt)}</p>
-        </div>
-
-        <div class="mb-3 space-y-1">
-          <div class="flex justify-between"><span>Ticket:</span><b>${esc(o.code)}</b></div>
-          <div class="flex justify-between"><span>Table:</span><b>${esc(o.table || 'General')}</b></div>
-          <div class="flex justify-between"><span>Cashier:</span><span>${esc(S.session.name || 'Counter')}</span></div>
-        </div>
-
-        <div class="border-y border-dashed border-gray-400 py-2.5 my-2.5 space-y-1.5">
-          ${(o.items || []).map(i => `
-            <div class="flex justify-between">
-              <span>${i.qty}× ${esc(i.name)}</span>
-              <span>${peso((i.price || 0) * (i.qty || 1))}</span>
+          <div class="p-6 max-w-sm mx-auto font-mono text-xs bg-white text-black p-8 rounded-xl shadow-2xl">
+            <div class="text-center pb-3 border-b border-dashed border-gray-400 mb-3">
+              <h2 class="font-bold text-base tracking-wider">FOOD &amp; BEVERAGE</h2>
+              <p class="text-[11px] text-gray-600">Restaurant Operations Receipt</p>
+              <p class="text-[10px] text-gray-500 mt-1">${fmtDateTime(o.paidAt || o.createdAt)}</p>
             </div>
-          `).join('')}
-        </div>
 
-        <div class="space-y-1 pt-1 mb-4">
-          <div class="flex justify-between text-sm font-bold pt-1 border-t border-gray-400">
-            <span>GROSS TOTAL:</span><span>${peso(orderTotal(o))}</span>
+            <div class="mb-3 space-y-1">
+              <div class="flex justify-between"><span>Ticket:</span><b>${esc(o.code)}</b></div>
+              <div class="flex justify-between"><span>Table:</span><b>${esc(o.table || 'General')}</b></div>
+              <div class="flex justify-between"><span>Cashier:</span><span>${esc(S.session.name || 'Counter')}</span></div>
+            </div>
+
+            <div class="border-y border-dashed border-gray-400 py-2.5 my-2.5 space-y-1.5">
+              ${(o.items || []).filter(i => !i.cancelled).map(i => `
+                <div class="flex justify-between">
+                  <span>${i.qty}× ${esc(i.name)}</span>
+                  <span>${peso((i.price || 0) * (i.qty || 1))}</span>
+                </div>
+              `).join('')}
+            </div>
+
+            <div class="space-y-1 pt-1 mb-4">
+              <div class="flex justify-between text-sm font-bold pt-1 border-t border-gray-400">
+                <span>GROSS TOTAL:</span><span>${peso(orderTotal(o))}</span>
+              </div>
+              <div class="flex justify-between text-[11px] text-gray-600 pt-1">
+                <span>Status:</span><span>PAID</span>
+              </div>
+            </div>
+
+            <div class="text-center text-[10px] text-gray-500 pt-3 border-t border-dashed border-gray-400">
+              <p>Thank you for dining with us!</p>
+              <p>Please come again.</p>
+            </div>
+
+            <div class="flex gap-2 pt-5">
+              <button class="btn btn-primary flex-1 justify-center py-2 text-xs" onclick="window.print()">
+                ${icon('printer', 'w-3.5 h-3.5')} Print Receipt
+              </button>
+              <button class="btn btn-ghost py-2 text-xs text-black" onclick="Savor.Modal.close()">Close</button>
+            </div>
           </div>
-          <div class="flex justify-between text-[11px] text-gray-600 pt-1">
-            <span>Status:</span><span>PAID</span>
-          </div>
-        </div>
-
-        <div class="text-center text-[10px] text-gray-500 pt-3 border-t border-dashed border-gray-400">
-          <p>Thank you for dining with us!</p>
-          <p>Please come again.</p>
-        </div>
-
-        <div class="flex gap-2 pt-5">
-          <button class="btn btn-primary flex-1 justify-center py-2 text-xs" onclick="window.print()">
-            ${icon('printer', 'w-3.5 h-3.5')} Print Receipt
-          </button>
-          <button class="btn btn-ghost py-2 text-xs text-black" onclick="Savor.Modal.close()">Close</button>
-        </div>
-      </div>
-    `);
+        `);
       };
 
       S.boot({ role: 'cashier', defaultScreen: 'unpaid', render: render });
